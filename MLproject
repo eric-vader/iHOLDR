@@ -1,16 +1,16 @@
 name: ML 
 
-conda_env: ml_project.yml
+conda_env: iHOLDR.yml
 
 entry_points:
   main:
     parameters:
       param_file: {type: path, default: sample/default.yml}
-    command: "python ml_proj/main.py {param_file}"
+    command: "python iHOLDR/main.py {param_file}"
   start:
     parameters:
       param_file: {type: str}
-    command: "LOGGING_TYPE=SERVER DAEMON=TRUE python ml_proj/main.py {param_file}"
+    command: "LOGGING_TYPE=SERVER DAEMON=TRUE python iHOLDR/main.py {param_file}"
   test:
     command: "mlflow run test"
   doc:
@@ -19,5 +19,5 @@ entry_points:
     parameters:
       param_file: {type: path, default: sample/default.yml}
       profile_file: {type: string, default: program.profile}
-    command: "python -m cProfile -o {profile_file} ml_proj/main.py {param_file}"
+    command: "python -m cProfile -o {profile_file} iHOLDR/main.py {param_file}"
 
