@@ -1,0 +1,19 @@
+name: ml_proj
+channels:
+  - conda-forge
+  - gpytorch
+dependencies:
+  - python=3.9.10
+  - conda-forge::cython
+  - conda-forge::libblas=*=*mkl
+  - pip
+  - gpytorch::gpytorch==1.6.0
+  - conda-forge::numpy==1.22.3
+  - conda-forge::scipy==1.8.0
+  - conda-forge::boto3==1.21.17
+  - conda-forge::mlflow=1.23.1
+  - conda-forge::george==0.4.0
+  - conda-forge::gpy==1.10.0
+  - conda-forge::scikit-learn==1.0.2
+  - pip:
+    - pid==3.0.4

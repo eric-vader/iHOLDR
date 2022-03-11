@@ -1,0 +1,31 @@
+datasets:
+  ExampleDataset:
+    data_random_seed: 2
+    dimension: 15
+    fn_noise_var: 0.15
+    graph_type: StarGraph
+    grid_params:
+      domain_lower: 0.0
+      domain_upper: 1.0
+      grid_size: 51
+    kernel_params:
+      lengthscale: 0.2
+      variance: 1.0
+
+algorithms:
+  ExampleAlgorithm:
+    n_iter: 100
+    n_rand: 10
+    algorithm: Optimal
+    algorithm_random_seed: 1
+    eps: -1
+    exploration_weight: 'lambda t: 0.5 * np.log(2*t)'
+    graphSamplingNumIter: 100
+    initial_kernel_params:
+      lengthscale: 0.1
+      variance: 0.5
+    learnDependencyStructureRate: 15
+    lengthscaleNumIter: 2
+    max_eval: 1000
+    noise_var: 0.1
+    param_n_iter: 16

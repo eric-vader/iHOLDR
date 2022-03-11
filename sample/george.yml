@@ -1,0 +1,22 @@
+datasets:
+  ExampleDataset:
+    random_seed: 0
+    data_random_seed: 2
+    dimension: 15
+    fn_noise_var: 0.15
+    graph_type: StarGraph
+    grid_params:
+      domain_lower: 0.0
+      domain_upper: 1.0
+      grid_size: 51
+    kernel_params:
+      lengthscale: 0.2
+      variance: 1.0
+
+algorithms:
+  GeorgeGP:
+    random_seed: 0
+    solver: HODLRSolver
+    kernel: ExpSquaredKernel
+    kernel_kwargs:
+      metric: 1.0
