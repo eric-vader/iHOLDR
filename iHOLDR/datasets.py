@@ -5,6 +5,17 @@ import logging
 import numpy as np
 import george
 import math
+from dataclasses import dataclass
+
+@dataclass
+class DataInstance:
+    X: np.ndarray
+    y: np.ndarray
+    N: int
+    def reshape(self):
+        self.X = self.X[:,None]
+        self.y = self.y[:,None]
+    def 
 
 class Dataset(common.Component):
     def __init__(self, **kwargs):
@@ -18,15 +29,20 @@ class ExampleDataset(Dataset):
 
         N = 200
 
-        x = self.rng.uniform(0, 10, N)
+        X = self.rng.uniform(-10, 10, N)
         noise = 0.3
         sigma_err = noise ** 2
-        yerr = noise * np.ones_like(x)
-        y = np.sin(x)
+        yerr = noise * np.ones_like(X)
+        y = np.sin(X)
         var_y = np.var(y)
 
+        self.data = DataInstance(X, y, N)
+        
+
+        print(len(yerr))
+        
         self.N = N
-        self.X = x
+        self.X = X
         self.y = y
         self.var_y = var_y
         self.yerr = yerr
