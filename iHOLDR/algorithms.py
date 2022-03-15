@@ -85,19 +85,22 @@ class GeorgeGP(CommonGP):
         with torch.no_grad(), gpytorch.settings.fast_computations(log_prob=True):
             logging.info(model.likelihood(model(train_x)).log_prob(train_y))
 
-        train_x = torch.from_numpy(X).float().cuda()
-        train_y = torch.from_numpy(y).float().cuda()
-        likelihood = gpytorch.likelihoods.GaussianLikelihood().cuda()
-        model = ExactGPModel(train_x, train_y, likelihood)
-        hypers = {
-            'likelihood.noise_covar.noise': torch.tensor(noise**2),
-            'covar_module.base_kernel.lengthscale': torch.tensor(1.0),
-            'covar_module.outputscale': torch.tensor(var_y),
-        }
-        model.initialize(**hypers)
-        model = model.cuda()
-        with torch.no_grad(), gpytorch.settings.fast_computations(log_prob=True):
-            logging.info(model.likelihood(model(train_x)).log_prob(train_y))
+        try:
+            train_x = torch.from_numpy(X).float().cuda()
+            train_y = torch.from_numpy(y).float().cuda()
+            likelihood = gpytorch.likelihoods.GaussianLikelihood().cuda()
+            model = ExactGPModel(train_x, train_y, likelihood)
+            hypers = {
+                'likelihood.noise_covar.noise': torch.tensor(noise**2),
+                'covar_module.base_kernel.lengthscale': torch.tensor(1.0),
+                'covar_module.outputscale': torch.tensor(var_y),
+            }
+            model.initialize(**hypers)
+            model = model.cuda()
+            with torch.no_grad(), gpytorch.settings.fast_computations(log_prob=True):
+                logging.info(model.likelihood(model(train_x)).log_prob(train_y))
+        except RuntimeError as e:
+            logging.exception(e)
 
         N = self.data.N
         X = self.data.X
