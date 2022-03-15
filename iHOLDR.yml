@@ -15,5 +15,9 @@ dependencies:
   - conda-forge::george==0.4.0
   - conda-forge::gpy==1.10.0
   - conda-forge::scikit-learn==1.0.2
+  - conda-forge::configspace==0.4.20
+  - pytorch::pytorch
+  - conda-forge::cudatoolkit=11.3
   - pip:
     - pid==3.0.4
+    - git+https://github.com/eric-vader/HPOlib2.git@d332596c8c1d81729d9aef9020a192c8ca8268ae#egg=hpolib2

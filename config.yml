@@ -15,9 +15,6 @@ Directory:
     data: 
         path: [ "{TEMP}", data ]
         exist_ok: False
-    learnt_graphs: 
-        path: [ "{TEMP}", learnt_graphs ]
-        exist_ok: False
     cache:
         path: ["~", cache]
         exist_ok: True
