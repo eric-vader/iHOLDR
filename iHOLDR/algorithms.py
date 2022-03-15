@@ -77,9 +77,9 @@ class GeorgeGP(CommonGP):
         likelihood = gpytorch.likelihoods.GaussianLikelihood()
         model = ExactGPModel(train_x, train_y, likelihood)
         hypers = {
-            'likelihood.noise_covar.noise': torch.tensor(noise_variance),
-            'covar_module.base_kernel.lengthscale': torch.tensor(1.0),
-            'covar_module.outputscale': torch.tensor(var_y),
+            'likelihood.noise_covar.noise': noise_variance,
+            'covar_module.base_kernel.lengthscale': 1.0,
+            'covar_module.outputscale': var_y,
         }
         model.initialize(**hypers)
         with torch.no_grad(), gpytorch.settings.fast_computations(log_prob=True):
@@ -91,9 +91,9 @@ class GeorgeGP(CommonGP):
             likelihood = gpytorch.likelihoods.GaussianLikelihood().cuda()
             model = ExactGPModel(train_x, train_y, likelihood)
             hypers = {
-                'likelihood.noise_covar.noise': torch.tensor(noise**2),
-                'covar_module.base_kernel.lengthscale': torch.tensor(1.0),
-                'covar_module.outputscale': torch.tensor(var_y),
+                'likelihood.noise_covar.noise': noise_variance,
+                'covar_module.base_kernel.lengthscale': 1.0,
+                'covar_module.outputscale': var_y,
             }
             model.initialize(**hypers)
             model = model.cuda()
