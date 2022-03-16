@@ -4,6 +4,8 @@ import hashlib
 import json
 import importlib
 import os
+import collections
+import logging
 
 from config import Config
 
@@ -38,4 +40,10 @@ class Experiment:
             self.sub_module_name_lookup[module] = sub_module
 
             Clazz = getattr(importlib.import_module(module), sub_module)
-            self.sub_module_instances[module] = Clazz(hash=self.sub_module_hashes[module], **{**kwargs, **self.sub_module_instances})
+            instance = Clazz(hash=self.sub_module_hashes[module], **{**kwargs, **self.sub_module_instances})
+
+            if issubclass(Clazz, collections.abc.Callable):
+                logging.info(f"Invoking object of {module}.{sub_module}: {instance}" )
+                instance()
+            
+            self.sub_module_instances[module] = instance

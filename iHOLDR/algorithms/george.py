@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import common
+
 import logging
 import numpy as np
 
@@ -9,58 +9,33 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 import GPy
 import torch
 import gpytorch
+import gc
 
-
-class ExampleAlgorithm(common.Component):
-    def __init__(self, datasets, **kwargs):
-        super().__init__(**kwargs)
-        logging.info(kwargs)
-        logging.info(datasets)
-
-class CommonGP(common.Component):
-    kernel_kwargs_mapper = {}
-    def kernel_kwargs_adaptor(self, kernel_kwargs):
-        return { (self.kernel_kwargs_mapper[k] if k in self.kernel_kwargs_mapper else k) : v for k,v in kernel_kwargs.items()  }
-    def __init__(self, datasets, kernel_kwargs, **kwargs):
-        super().__init__(**kwargs)
-        self.rng = np.random.default_rng(self.random_seed)
-        
-        self.datasets = datasets
-        self.data = datasets.generate_data()
-
-        if kernel_kwargs['variance'] == 'population':
-            kernel_kwargs['variance'] = np.var(self.data.y)
-        self.kernel_kwargs = self.kernel_kwargs_adaptor(kernel_kwargs)
+from algorithms.commonGP import CommonGP
 
 class GeorgeGP(CommonGP):
     kernel_kwargs_mapper = {
         'lengthscale':'metric'
     }
-    def __init__(self, solver, kernel, noise_variance, **kwargs):
+    def __init__(self, solver, kernel, **kwargs):
         super().__init__(**kwargs)
-
-        noise = np.sqrt(noise_variance)
 
         N = self.data.N
         X = self.data.X
         y = self.data.y
 
-        yerr = noise * np.ones_like(X)
+        var_y = self.kernel_kwargs.pop('scale_variance')
+        noise_variance = self.kernel_kwargs.pop('noise_variance')
 
-        var_y = self.kernel_kwargs.pop('variance')
+        noise = np.sqrt(noise_variance)
+        yerr = noise * np.ones_like(X)
 
         kernel = var_y * getattr(george.kernels, kernel)(**self.kernel_kwargs)
 
         idx = np.array(range(N))
-        _gp_hodlr = george.GP(kernel, solver=getattr(george, solver))
-        _gp_hodlr.compute(X[idx], yerr[idx])
-        logging.info(_gp_hodlr.log_likelihood(y[idx]))
-
-        gp_basic = george.GP(kernel)
-        gp_basic.compute(X, yerr)
-        logging.info(gp_basic.log_likelihood(y))
-
-        self.data.reshape()
+        model = george.GP(kernel, solver=getattr(george, solver))
+        model.compute(X[idx], yerr[idx])
+        logging.info(model.log_likelihood(y[idx]))
 
         train_x = torch.from_numpy(X)
         train_y = torch.from_numpy(y)
@@ -102,6 +77,7 @@ class GeorgeGP(CommonGP):
         except RuntimeError as e:
             logging.exception(e)
 
+        self.data.reshape()
         N = self.data.N
         X = self.data.X
         y = self.data.y
@@ -118,4 +94,6 @@ class GeorgeGP(CommonGP):
         gp_gpy = GPy.models.GPRegression(X, y, kernel_gpy)
         gp_gpy.Gaussian_noise.fix(noise_variance)
         logging.info(gp_gpy.log_likelihood())
-
+        
+    def compute_log_likelihood(self):
+        pass
