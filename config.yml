@@ -15,20 +15,8 @@ Directory:
     data: 
         path: [ "{TEMP}", data ]
         exist_ok: False
-    cache:
-        path: ["~", cache]
-        exist_ok: True
-    fcnet: 
-        path: ["~", fcnet]
-        exist_ok: True
-    mps: 
-        path: ["~", mps]
-        exist_ok: True
-    job:
-        path: [ "~", mlflow-jobs ]
-        exist_ok: True
 Daemon:
     daemon:
-        path: [ "/", "tmp", mlflow-pid ]
+        path: [ "/", dev, shm ]
         exist_ok: True
         env_key: 'DAEMON'
