@@ -61,7 +61,7 @@ if __name__ == '__main__':
         # Check if running in daemon mode 
         if c.configs['daemon'].is_daemon():
             with c.configs['daemon'].lock_pid_file(exp.hash) as p:
-                logging.info(p.filename)
+                logging.info('PID location: %s', p.filename)
                 main(mlflow_logger, exp)
         else:
             main(mlflow_logger, exp)
