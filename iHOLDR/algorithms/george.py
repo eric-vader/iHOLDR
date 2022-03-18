@@ -6,7 +6,7 @@ import numpy as np
 import george
 import sklearn
 from sklearn.gaussian_process import GaussianProcessRegressor
-import GPy
+
 import torch
 import gpytorch
 import gc
@@ -36,46 +36,6 @@ class GeorgeGP(CommonGP):
         model = george.GP(kernel, solver=getattr(george, solver))
         model.compute(X[idx], yerr[idx])
         logging.info(model.log_likelihood(y[idx]))
-
-        train_x = torch.from_numpy(X)
-        train_y = torch.from_numpy(y)
-        class ExactGPModel(gpytorch.models.ExactGP):
-            def __init__(self, train_x, train_y, likelihood):
-                super(ExactGPModel, self).__init__(train_x, train_y, likelihood)
-                self.mean_module = gpytorch.means.ConstantMean()
-                self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
-
-            def forward(self, x):
-                mean_x = self.mean_module(x)
-                covar_x = self.covar_module(x)
-                return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
-        likelihood = gpytorch.likelihoods.GaussianLikelihood()
-        model = ExactGPModel(train_x, train_y, likelihood)
-        hypers = {
-            'likelihood.noise_covar.noise': noise_variance,
-            'covar_module.base_kernel.lengthscale': 1.0,
-            'covar_module.outputscale': var_y,
-        }
-        model.initialize(**hypers)
-        with torch.no_grad(), gpytorch.settings.fast_computations(log_prob=True):
-            logging.info(model.likelihood(model(train_x)).log_prob(train_y))
-
-        try:
-            train_x = torch.from_numpy(X).float().cuda()
-            train_y = torch.from_numpy(y).float().cuda()
-            likelihood = gpytorch.likelihoods.GaussianLikelihood().cuda()
-            model = ExactGPModel(train_x, train_y, likelihood)
-            hypers = {
-                'likelihood.noise_covar.noise': noise_variance,
-                'covar_module.base_kernel.lengthscale': 1.0,
-                'covar_module.outputscale': var_y,
-            }
-            model.initialize(**hypers)
-            model = model.cuda()
-            with torch.no_grad(), gpytorch.settings.fast_computations(log_prob=True):
-                logging.info(model.likelihood(model(train_x)).log_prob(train_y))
-        except RuntimeError as e:
-            logging.exception(e)
 
         self.data.reshape()
         N = self.data.N

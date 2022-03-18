@@ -9,11 +9,44 @@ import logging
 from LBFGS import FullBatchLBFGS
 from algorithms.commonGP import CommonGP
 
+class ExactGPModel(gpytorch.models.ExactGP):
+    def __init__(self, train_x, train_y, likelihood, Kernel):
+        super(ExactGPModel, self).__init__(train_x, train_y, likelihood)
+        self.mean_module = gpytorch.means.ConstantMean()
+        self.covar_module = gpytorch.kernels.ScaleKernel(Kernel())
+
+    def forward(self, x):
+        mean_x = self.mean_module(x)
+        covar_x = self.covar_module(x)
+        return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
+
+class PyTorchGP(CommonGP):
+    kernel_kwargs_mapper = {
+        'lengthscale':'covar_module.base_kernel.lengthscale',
+        'noise_variance':'likelihood.noise_covar.noise',
+        'scale_variance':'covar_module.outputscale'
+    }
+    def __init__(self, output_device, n_devices, preconditioner_size, kernel, **kwargs):
+        super().__init__(**kwargs)
+        self.output_device = torch.device(output_device)
+        self.train_x = torch.from_numpy(self.data.X).to(self.output_device)
+        self.train_y = torch.from_numpy(self.data.y).to(self.output_device)
+        self.n_devices = n_devices
+        self.Kernel = getattr(gpytorch.kernels, kernel)
+    def compute_log_likelihood(self):
+        likelihood = gpytorch.likelihoods.GaussianLikelihood().to(self.output_device)
+        model = ExactGPModel(self.train_x, self.train_y, likelihood, self.Kernel).to(self.output_device)
+        model.initialize(**self.kernel_kwargs)
+
+        with torch.no_grad(), gpytorch.settings.fast_pred_var():
+            log_likelihood = model.likelihood(model(self.train_x)).log_prob(self.train_y).item()
+            return log_likelihood
+
 class ExactAlexanderGPModel(gpytorch.models.ExactGP):
-    def __init__(self, train_x, train_y, likelihood, n_devices, output_device):
+    def __init__(self, train_x, train_y, likelihood, Kernel, n_devices, output_device):
         super(ExactAlexanderGPModel, self).__init__(train_x, train_y, likelihood)
         self.mean_module = gpytorch.means.ConstantMean()
-        base_covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
+        base_covar_module = gpytorch.kernels.ScaleKernel(Kernel())
 
         self.covar_module = gpytorch.kernels.MultiDeviceKernel(
             base_covar_module, device_ids=range(n_devices),
@@ -26,19 +59,15 @@ class ExactAlexanderGPModel(gpytorch.models.ExactGP):
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
 
 # Author implementation of https://arxiv.org/abs/1903.08114
-class PyTorchAlexanderGP(CommonGP):
+class PyTorchAlexanderGP(PyTorchGP):
     kernel_kwargs_mapper = {
         'lengthscale':'covar_module.module.base_kernel.lengthscale',
         'noise_variance':'likelihood.noise_covar.noise',
         'scale_variance':'covar_module.module.outputscale'
     }
-    def __init__(self, output_device, n_devices, preconditioner_size, **kwargs):
+    def __init__(self, preconditioner_size, **kwargs):
         super().__init__(**kwargs)
 
-        self.output_device = torch.device(output_device)
-        self.train_x = torch.from_numpy(self.data.X).to(self.output_device)
-        self.train_y = torch.from_numpy(self.data.y).to(self.output_device)
-        self.n_devices = n_devices
         # Set a large enough preconditioner size to reduce the number of CG iterations run
         self.preconditioner_size = preconditioner_size
         self.checkpoint_size = self.find_best_gpu_setting()
@@ -46,10 +75,11 @@ class PyTorchAlexanderGP(CommonGP):
     def compute_log_likelihood(self):
 
         likelihood = gpytorch.likelihoods.GaussianLikelihood().to(self.output_device)
-        model = ExactAlexanderGPModel(self.train_x, self.train_y, likelihood, self.n_devices, self.output_device).to(self.output_device)
+        model = ExactAlexanderGPModel(self.train_x, self.train_y, likelihood, self.Kernel, self.n_devices, self.output_device).to(self.output_device)
         model.initialize(**self.kernel_kwargs)
 
-        with torch.no_grad(), gpytorch.settings.fast_pred_var(), gpytorch.beta_features.checkpoint_kernel(self.checkpoint_size), \
+        # gpytorch.settings.fast_pred_var(), 
+        with torch.no_grad(), gpytorch.beta_features.checkpoint_kernel(self.checkpoint_size), \
             gpytorch.settings.max_preconditioner_size(self.preconditioner_size), gpytorch.settings.fast_computations(log_prob=True):
 
             log_likelihood = model.likelihood(model(self.train_x)).log_prob(self.train_y).item()
@@ -60,7 +90,7 @@ class PyTorchAlexanderGP(CommonGP):
 
     def train(self, checkpoint_size, n_training_iter):
         likelihood = gpytorch.likelihoods.GaussianLikelihood().to(self.output_device)
-        model = ExactAlexanderGPModel(self.train_x, self.train_y, likelihood, self.n_devices, self.output_device).to(self.output_device)
+        model = ExactAlexanderGPModel(self.train_x, self.train_y, likelihood, self.Kernel, self.n_devices, self.output_device).to(self.output_device)
         model.train()
         likelihood.train()
 
@@ -121,34 +151,3 @@ class PyTorchAlexanderGP(CommonGP):
                 gc.collect()
                 torch.cuda.empty_cache()
         return checkpoint_size
-
-class ExactGPModel(gpytorch.models.ExactGP):
-    def __init__(self, train_x, train_y, likelihood):
-        super(ExactGPModel, self).__init__(train_x, train_y, likelihood)
-        self.mean_module = gpytorch.means.ConstantMean()
-        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
-
-    def forward(self, x):
-        mean_x = self.mean_module(x)
-        covar_x = self.covar_module(x)
-        return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
-
-class PyTorchGP(CommonGP):
-    kernel_kwargs_mapper = {
-        'lengthscale':'covar_module.module.base_kernel.lengthscale',
-        'noise_variance':'likelihood.noise_covar.noise',
-        'scale_variance':'covar_module.module.outputscale'
-    }
-    def __init__(self, output_device, n_devices, preconditioner_size, **kwargs):
-        super().__init__(**kwargs)
-        self.output_device = torch.device(output_device)
-        self.train_x = torch.from_numpy(self.data.X).to(self.output_device)
-        self.train_y = torch.from_numpy(self.data.y).to(self.output_device)
-        self.n_devices = n_devices
-    def compute_log_likelihood(self):
-        likelihood = gpytorch.likelihoods.GaussianLikelihood()
-        model = ExactGPModel(self.train_x, self.train_y, likelihood)
-        model.initialize(**self.kernel_kwargs)
-        with torch.no_grad(), gpytorch.settings.fast_computations(log_prob=True):
-        with torch.no_grad(), gpytorch.settings.fast_pred_var():
-            logging.info(model.likelihood(model(train_x)).log_prob(train_y))
