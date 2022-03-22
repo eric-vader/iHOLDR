@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-import GPy
+import gpflow
 import numpy as np
 import logging
 
 from algorithms.commonGP import CommonGP
 
-class GPyGP(CommonGP):
+class GPflowGP(CommonGP):
     kernel_kwargs_mapper = {
         'lengthscale':'lengthscale',
         'noise_variance':'noise_variance',
@@ -13,14 +13,15 @@ class GPyGP(CommonGP):
     }
     def __init__(self, kernel, **kwargs):
         super().__init__(**kwargs)
-        self.Kernel = getattr(GPy.kern, kernel)
+        self.Kernel = getattr(gpflow.kernels, kernel)
         self.kernel_kwargs['input_dim'] = self.data.D
         self.noise_variance = self.kernel_kwargs.pop('noise_variance')
     
+        self.data.X = self.data.X[:,None]
         self.data.y = self.data.y[:,None]
 
     def compute_log_likelihood(self):
         kernel = self.Kernel(**self.kernel_kwargs)
-        model = GPy.models.GPRegression(self.data.X, self.data.y, kernel)
+        model = gpflow.models.GPR(self.data.X, self.data.y, kernel)
         model.Gaussian_noise.fix(self.noise_variance)
         return model.log_likelihood()

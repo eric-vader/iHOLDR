@@ -42,8 +42,8 @@ class Experiment:
             Clazz = getattr(importlib.import_module(module), sub_module)
             instance = Clazz(hash=self.sub_module_hashes[module], **{**kwargs, **self.sub_module_instances})
 
-            if issubclass(Clazz, collections.abc.Callable):
-                logging.info(f"Invoking object of {module}.{sub_module}: {instance}" )
-                instance()
+            # if issubclass(Clazz, collections.abc.Callable):
+            #     logging.info(f"Invoking object of {module}.{sub_module}: {instance}" )
+            #     instance()
             
             self.sub_module_instances[module] = instance

@@ -14,9 +14,6 @@ class SklearnGP(CommonGP):
         self.scale_variance = self.kernel_kwargs.pop('scale_variance')
         self.noise_variance = self.kernel_kwargs.pop('noise_variance')
         
-        self.data.X = self.data.X[:,None]
-        self.data.y = self.data.y[:,None]
-
     def compute_log_likelihood(self):
 
         kernel = self.scale_variance * self.Kernel(**self.kernel_kwargs)

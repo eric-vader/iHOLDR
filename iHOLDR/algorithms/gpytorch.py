@@ -19,6 +19,8 @@ class ExactGPModel(gpytorch.models.ExactGP):
         mean_x = self.mean_module(x)
         covar_x = self.covar_module(x)
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
+    def get_lengthscale(self):
+        return self.covar_module.base_kernel.lengthscale
 
 class PyTorchGP(CommonGP):
     kernel_kwargs_mapper = {
@@ -26,12 +28,11 @@ class PyTorchGP(CommonGP):
         'noise_variance':'likelihood.noise_covar.noise',
         'scale_variance':'covar_module.outputscale'
     }
-    def __init__(self, output_device, n_devices, preconditioner_size, kernel, **kwargs):
+    def __init__(self, output_device, kernel, **kwargs):
         super().__init__(**kwargs)
         self.output_device = torch.device(output_device)
         self.train_x = torch.from_numpy(self.data.X).to(self.output_device)
         self.train_y = torch.from_numpy(self.data.y).to(self.output_device)
-        self.n_devices = n_devices
         self.Kernel = getattr(gpytorch.kernels, kernel)
     def compute_log_likelihood(self):
         likelihood = gpytorch.likelihoods.GaussianLikelihood().to(self.output_device)
@@ -57,6 +58,8 @@ class ExactAlexanderGPModel(gpytorch.models.ExactGP):
         mean_x = self.mean_module(x)
         covar_x = self.covar_module(x)
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
+    def get_lengthscale(self):
+        return self.covar_module.module.base_kernel.lengthscale
 
 # Author implementation of https://arxiv.org/abs/1903.08114
 class PyTorchAlexanderGP(PyTorchGP):
@@ -65,18 +68,25 @@ class PyTorchAlexanderGP(PyTorchGP):
         'noise_variance':'likelihood.noise_covar.noise',
         'scale_variance':'covar_module.module.outputscale'
     }
-    def __init__(self, preconditioner_size, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, output_device, preconditioner_size, n_devices, **kwargs):
+        if output_device == "cpu":
+            PyTorchAlexanderGP.kernel_kwargs_mapper = {
+                'lengthscale':'covar_module.base_kernel.lengthscale',
+                'noise_variance':'likelihood.noise_covar.noise',
+                'scale_variance':'covar_module.outputscale'
+            }
+        super().__init__(output_device=output_device, **kwargs)
+
+        self.n_devices = n_devices
 
         # Set a large enough preconditioner size to reduce the number of CG iterations run
         self.preconditioner_size = preconditioner_size
-        self.checkpoint_size = self.find_best_gpu_setting()
+        self.checkpoint_size = self.find_best_partition_setting()
 
     def compute_log_likelihood(self):
 
         likelihood = gpytorch.likelihoods.GaussianLikelihood().to(self.output_device)
-        model = ExactAlexanderGPModel(self.train_x, self.train_y, likelihood, self.Kernel, self.n_devices, self.output_device).to(self.output_device)
-        model.initialize(**self.kernel_kwargs)
+        model = self.create_model(likelihood)
 
         # gpytorch.settings.fast_pred_var(), 
         with torch.no_grad(), gpytorch.beta_features.checkpoint_kernel(self.checkpoint_size), \
@@ -87,11 +97,19 @@ class PyTorchAlexanderGP(PyTorchGP):
 
         # model, likelihood = self.train(checkpoint_size=self.checkpoint_size, n_training_iter=20)
         # logging.info(model.likelihood(model(self.train_x)).log_prob(self.train_y))
+    def create_model(self, likelihood):
+        if str(self.output_device) == "cpu":
+            model = ExactGPModel(self.train_x, self.train_y, likelihood, self.Kernel).to(self.output_device)
+            print(self.kernel_kwargs)
+            model.initialize(**self.kernel_kwargs)
+        else:
+            model = ExactAlexanderGPModel(self.train_x, self.train_y, likelihood, self.Kernel, self.n_devices, self.output_device).to(self.output_device)
+            model.initialize(**self.kernel_kwargs)
+        return model
 
     def train(self, checkpoint_size, n_training_iter):
         likelihood = gpytorch.likelihoods.GaussianLikelihood().to(self.output_device)
-        model = ExactAlexanderGPModel(self.train_x, self.train_y, likelihood, self.Kernel, self.n_devices, self.output_device).to(self.output_device)
-        model.train()
+        model = self.create_model(likelihood)
         likelihood.train()
 
         optimizer = FullBatchLBFGS(model.parameters(), lr=0.1)
@@ -117,7 +135,7 @@ class PyTorchAlexanderGP(PyTorchGP):
 
                 logging.info('Iter %d/%d - Loss: %.3f   lengthscale: %.3f   noise: %.3f' % (
                     i + 1, n_training_iter, loss.item(),
-                    model.covar_module.module.base_kernel.lengthscale.item(),
+                    model.get_lengthscale().item(),
                     model.likelihood.noise.item()
                 ))
 
@@ -127,7 +145,7 @@ class PyTorchAlexanderGP(PyTorchGP):
 
         logging.info(f"Finished training on {self.train_x.size(0)} data points using {self.n_devices} GPUs.")
         return model, likelihood
-    def find_best_gpu_setting(self):
+    def find_best_partition_setting(self):
         N = self.train_x.size(0)
 
         # Find the optimum partition/checkpoint size by decreasing in powers of 2

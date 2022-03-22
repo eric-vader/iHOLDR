@@ -30,6 +30,7 @@ class Dataset(common.Component):
         self.fn_kwargs = fn_kwargs
 
     def generate_noise(self, mean, variance):
+        # output is always 1D
         return self.rng.normal(mean, np.sqrt(variance), self.n_samples)
     def generate_data(self):
         D, X, fX = self.generate_X_fX(**self.fn_kwargs)
@@ -51,6 +52,7 @@ class Function(Dataset):
         D = len(bounds)
         low, high = np.swapaxes(bounds, 1, 0)
         
-        X = self.rng.uniform(low, high, self.n_samples)
-        fX = _fn(X)
+        X = self.rng.uniform(low, high, (self.n_samples, D))
+        
+        fX = np.fromiter((_fn(xi) for xi in X), X.dtype)
         return D, X, fX
