@@ -40,8 +40,8 @@ class PyTorchGP(CommonGP):
         model.initialize(**self.kernel_kwargs)
 
         with torch.no_grad(), gpytorch.settings.fast_pred_var():
-            log_likelihood = model.likelihood(model(self.train_x)).log_prob(self.train_y).item()
-            return log_likelihood
+            log_likelihood = model.likelihood(model(self.train_x)).log_prob(self.train_y).cpu().numpy()
+            return np.float64(log_likelihood)
 
 class ExactAlexanderGPModel(gpytorch.models.ExactGP):
     def __init__(self, train_x, train_y, likelihood, Kernel, n_devices, output_device):
@@ -92,8 +92,8 @@ class PyTorchAlexanderGP(PyTorchGP):
         with torch.no_grad(), gpytorch.beta_features.checkpoint_kernel(self.checkpoint_size), \
             gpytorch.settings.max_preconditioner_size(self.preconditioner_size), gpytorch.settings.fast_computations(log_prob=True):
 
-            log_likelihood = model.likelihood(model(self.train_x)).log_prob(self.train_y).item()
-            return log_likelihood
+            log_likelihood = model.likelihood(model(self.train_x)).log_prob(self.train_y).cpu().numpy()
+            return np.float64(log_likelihood)
 
         # model, likelihood = self.train(checkpoint_size=self.checkpoint_size, n_training_iter=20)
         # logging.info(model.likelihood(model(self.train_x)).log_prob(self.train_y))

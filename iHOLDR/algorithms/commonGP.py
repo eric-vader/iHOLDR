@@ -39,7 +39,6 @@ class CommonGP(common.Component):
         start_time_ns = process_time_ns() 
         for i in range(self.m_repeats):
             log_likelihood = self.compute_log_likelihood()
-        logging.info(log_likelihood)
 
         time_taken_ns = process_time_ns()-start_time_ns
         metrics_dict['time_taken_ns'] = time_taken_ns / self.m_repeats

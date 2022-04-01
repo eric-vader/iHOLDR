@@ -9,6 +9,16 @@ datasets:
       mean: 0
       variance: 0.0001
 algorithms:
+
+  # GPflowGP:
+  #   random_seed: 0
+  #   m_repeats: 1
+  #   kernel: RBF
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.09
+
   # SklearnGP:
   #   random_seed: 0
   #   m_repeats: 1
@@ -47,17 +57,17 @@ algorithms:
   #     scale_variance: population
   #     noise_variance: 0.09
 
-  PyTorchAlexanderGP:
-    random_seed: 0
-    m_repeats: 1
-    kernel: RBFKernel
-    output_device: cuda:0
-    n_devices: 1
-    preconditioner_size: 100
-    kernel_kwargs:
-      lengthscale: 1.0
-      scale_variance: population
-      noise_variance: 0.09
+  # PyTorchAlexanderGP:
+  #   random_seed: 0
+  #   m_repeats: 1
+  #   kernel: RBFKernel
+  #   output_device: cuda:0
+  #   n_devices: 1
+  #   preconditioner_size: 100
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.09
 
   # PyTorchAlexanderGP:
   #   random_seed: 0
@@ -84,14 +94,14 @@ algorithms:
   #     scale_variance: population
   #     noise_variance: 0.09
 
-  # PyTorchGP:
-  #   random_seed: 0
-  #   m_repeats: 1
-  #   kernel: RBFKernel
-  #   output_device: cpu
-  #   n_devices: 1
-  #   preconditioner_size: 100
-  #   kernel_kwargs:
-  #     lengthscale: 1.0
-  #     scale_variance: population
-  #     noise_variance: 0.09
+  PyTorchGP:
+    random_seed: 0
+    m_repeats: 1
+    kernel: RBFKernel
+    output_device: cpu
+    n_devices: 1
+    preconditioner_size: 100
+    kernel_kwargs:
+      lengthscale: 1.0
+      scale_variance: population
+      noise_variance: 0.09
