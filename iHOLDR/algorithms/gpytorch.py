@@ -41,7 +41,7 @@ class PyTorchGP(CommonGP):
 
         with torch.no_grad(), gpytorch.settings.fast_pred_var():
             log_likelihood = model.likelihood(model(self.train_x)).log_prob(self.train_y).cpu().numpy()
-            return np.float64(log_likelihood)
+            return float(log_likelihood)
 
 class ExactAlexanderGPModel(gpytorch.models.ExactGP):
     def __init__(self, train_x, train_y, likelihood, Kernel, n_devices, output_device):

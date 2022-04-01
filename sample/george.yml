@@ -1,22 +1,107 @@
 datasets:
-  ExampleDataset:
+  Function:
     random_seed: 0
-    data_random_seed: 2
-    dimension: 15
-    fn_noise_var: 0.15
-    graph_type: StarGraph
-    grid_params:
-      domain_lower: 0.0
-      domain_upper: 1.0
-      grid_size: 51
-    kernel_params:
-      lengthscale: 0.2
-      variance: 1.0
-
+    n_samples: 200
+    fn_kwargs:
+      fn: 'lambda x:np.sin(x)'
+      bounds: [[-10,10]]
+    noise_kwargs:
+      mean: 0
+      variance: 0.0001
 algorithms:
-  GeorgeGP:
+
+  # GPflowGP:
+  #   random_seed: 0
+  #   m_repeats: 1
+  #   kernel: RBF
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.09
+
+  # SklearnGP:
+  #   random_seed: 0
+  #   m_repeats: 1
+  #   kernel: RBF
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.09
+
+  # GPyGP:
+  #   random_seed: 0
+  #   m_repeats: 1
+  #   kernel: RBF
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.09
+
+  # GeorgeGP:
+  #   random_seed: 0
+  #   m_repeats: 1
+  #   solver: HODLRSolver
+  #   kernel: ExpSquaredKernel
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.09
+
+  # GeorgeGP:
+  #   random_seed: 0
+  #   m_repeats: 1
+  #   solver: BasicSolver
+  #   kernel: ExpSquaredKernel
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.09
+
+  # PyTorchAlexanderGP:
+  #   random_seed: 0
+  #   m_repeats: 1
+  #   kernel: RBFKernel
+  #   output_device: cuda:0
+  #   n_devices: 1
+  #   preconditioner_size: 100
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.09
+
+  # PyTorchAlexanderGP:
+  #   random_seed: 0
+  #   m_repeats: 1
+  #   kernel: RBFKernel
+  #   output_device: cpu
+  #   n_devices: 1
+  #   preconditioner_size: 100
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.09
+
+
+  # PyTorchGP:
+  #   random_seed: 0
+  #   m_repeats: 1
+  #   kernel: RBFKernel
+  #   output_device: cuda:0
+  #   n_devices: 1
+  #   preconditioner_size: 100
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.09
+
+  PyTorchGP:
     random_seed: 0
-    solver: HODLRSolver
-    kernel: ExpSquaredKernel
+    m_repeats: 1
+    kernel: RBFKernel
+    output_device: cpu
+    n_devices: 1
+    preconditioner_size: 100
     kernel_kwargs:
-      metric: 1.0
+      lengthscale: 1.0
+      scale_variance: population
+      noise_variance: 0.09
