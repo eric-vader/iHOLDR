@@ -19,15 +19,23 @@ class DataInstance:
     fX: np.ndarray
     z: np.ndarray
     y: np.ndarray
+    def split(self, ratio):
+
+        N_ratioed = int(ratio * self.N)
+
+        return DataInstance(D=self.D, N=N_ratioed, X=self.X[:N_ratioed], fX=self.fX[:N_ratioed], z=self.z[:N_ratioed], y=self.y[:N_ratioed]), \
+            DataInstance(D=self.D, N=self.N-N_ratioed, X=self.X[N_ratioed:], fX=self.fX[N_ratioed:], z=self.z[N_ratioed:], y=self.y[N_ratioed:])
 
 class Dataset(common.Component):
-    def __init__(self, noise_kwargs, n_samples, fn_kwargs, **kwargs):
+    def __init__(self, noise_kwargs, n_samples, fn_kwargs, n_train_ratio, **kwargs):
         super().__init__(**kwargs)
         self.rng = np.random.default_rng(self.random_seed)
         self.n_samples = n_samples
 
         self.noise_kwargs = noise_kwargs
         self.fn_kwargs = fn_kwargs
+
+        self.n_train_ratio = n_train_ratio
 
     def generate_noise(self, mean, variance):
         # output is always 1D
@@ -36,7 +44,9 @@ class Dataset(common.Component):
         D, X, fX = self.generate_X_fX(**self.fn_kwargs)
         z = self.generate_noise(**self.noise_kwargs)
         y = fX + z
-        return DataInstance(D=D, N=self.n_samples, X=X, fX=fX, z=z, y=y)
+
+        # Here we split the data up to train, test splits
+        return DataInstance(D=D, N=self.n_samples, X=X, fX=fX, z=z, y=y).split(self.n_train_ratio)
 
 class Function(Dataset):
     def __init__(self, **kwargs):

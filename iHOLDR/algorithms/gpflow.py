@@ -16,10 +16,10 @@ class GPflowGP(CommonGP):
         self.Kernel = getattr(gpflow.kernels, kernel)
         self.noise_variance = self.kernel_kwargs.pop('noise_variance')
     
-        self.data.y = self.data.y[:,None]
+        self.train_data.y = self.train_data.y[:,None]
 
     def compute_log_likelihood(self):
         kernel = self.Kernel(**self.kernel_kwargs)
-        model = gpflow.models.GPR(data=(self.data.X, self.data.y), kernel=kernel)
+        model = gpflow.models.GPR(data=(self.train_data.X, self.train_data.y), kernel=kernel)
         model.likelihood.variance.assign(self.noise_variance)
         return model.log_marginal_likelihood().numpy()

@@ -14,13 +14,13 @@ class GPyGP(CommonGP):
     def __init__(self, kernel, **kwargs):
         super().__init__(**kwargs)
         self.Kernel = getattr(GPy.kern, kernel)
-        self.kernel_kwargs['input_dim'] = self.data.D
+        self.kernel_kwargs['input_dim'] = self.train_data.D
         self.noise_variance = self.kernel_kwargs.pop('noise_variance')
     
-        self.data.y = self.data.y[:,None]
+        self.train_data.y = self.train_data.y[:,None]
 
     def compute_log_likelihood(self):
         kernel = self.Kernel(**self.kernel_kwargs)
-        model = GPy.models.GPRegression(self.data.X, self.data.y, kernel)
+        model = GPy.models.GPRegression(self.train_data.X, self.train_data.y, kernel)
         model.Gaussian_noise.fix(self.noise_variance)
         return model.log_likelihood()

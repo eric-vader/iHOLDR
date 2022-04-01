@@ -21,5 +21,5 @@ class SklearnGP(CommonGP):
                                         alpha=self.noise_variance,
                                         optimizer=None,
                                         copy_X_train=False)
-        model.fit(self.data.X, self.data.y)
+        model.fit(self.train_data.X, self.train_data.y)
         return model.log_marginal_likelihood(kernel.theta)

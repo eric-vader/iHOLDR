@@ -17,11 +17,11 @@ class CommonGP(common.Component):
         self.rng = np.random.default_rng(self.random_seed)
         
         self.datasets = datasets
-        self.data = datasets.generate_data()
+        self.train_data, self.test_data = datasets.generate_data()
 
         if kernel_kwargs['scale_variance'] == 'population':
-            kernel_kwargs['scale_variance'] = np.var(self.data.y)
-        self.kernel_kwargs_prev = kernel_kwargs.copy()
+            kernel_kwargs['scale_variance'] = np.var(self.train_data.y)
+        self.kernel_kwargs_original = kernel_kwargs.copy()
         self.kernel_kwargs = self.kernel_kwargs_adaptor(kernel_kwargs)
 
         self.m_repeats = m_repeats
@@ -82,14 +82,14 @@ class CommonGP(common.Component):
         metrics_dict['test_type_compute_log_likelihood'] = int(type(log_likelihood) == np.float64)
 
     def test_acc_compute_log_likelihood(self, metrics_dict):
-        noise_variance = self.kernel_kwargs_prev["noise_variance"]
-        lengthscale = self.kernel_kwargs_prev["lengthscale"]
-        scale_variance = self.kernel_kwargs_prev["scale_variance"]
+        noise_variance = self.kernel_kwargs_original["noise_variance"]
+        lengthscale = self.kernel_kwargs_original["lengthscale"]
+        scale_variance = self.kernel_kwargs_original["scale_variance"]
 
         # Compute nll manually
-        X_train = self.data.X
-        Y_train = self.data.y
-        N = self.data.N
+        X_train = self.train_data.X
+        Y_train = self.train_data.y
+        N = self.train_data.N
 
         def gaussian_rbf(x1, x2, l=1, scale_variance=1):
             # distance between each rows

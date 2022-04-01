@@ -6,7 +6,7 @@ import numpy as np
 import logging
 
 # Implementation of LBFGS is from git@github.com:hjmshi/PyTorch-LBFGS.git
-from LBFGS import FullBatchLBFGS
+from algorithms.LBFGS import FullBatchLBFGS
 from algorithms.commonGP import CommonGP
 
 class ExactGPModel(gpytorch.models.ExactGP):
@@ -31,8 +31,8 @@ class PyTorchGP(CommonGP):
     def __init__(self, output_device, kernel, **kwargs):
         super().__init__(**kwargs)
         self.output_device = torch.device(output_device)
-        self.train_x = torch.from_numpy(self.data.X).to(self.output_device)
-        self.train_y = torch.from_numpy(self.data.y).to(self.output_device)
+        self.train_x = torch.from_numpy(self.train_data.X).to(self.output_device)
+        self.train_y = torch.from_numpy(self.train_data.y).to(self.output_device)
         self.Kernel = getattr(gpytorch.kernels, kernel)
     def compute_log_likelihood(self):
         likelihood = gpytorch.likelihoods.GaussianLikelihood().to(self.output_device)
