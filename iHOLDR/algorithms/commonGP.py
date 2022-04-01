@@ -17,7 +17,7 @@ class CommonGP(common.Component):
         self.rng = np.random.default_rng(self.random_seed)
         
         self.datasets = datasets
-        self.train_data, self.test_data = datasets.generate_data()
+        self.train_data, self.test_data, self.data = [ self.adapt_data(d) for d in datasets.generate_data() ]
 
         if kernel_kwargs['scale_variance'] == 'population':
             kernel_kwargs['scale_variance'] = np.var(self.train_data.y)

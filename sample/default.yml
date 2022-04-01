@@ -20,17 +20,8 @@ algorithms:
   #     scale_variance: population
   #     noise_variance: 0.09
 
-  SklearnGP:
-    test_mode: True
-    random_seed: 0
-    m_repeats: 1
-    kernel: RBF
-    kernel_kwargs:
-      lengthscale: 1.0
-      scale_variance: population
-      noise_variance: 0.09
-
-  # GPyGP:
+  # SklearnGP:
+  #   test_mode: True
   #   random_seed: 0
   #   m_repeats: 1
   #   kernel: RBF
@@ -38,6 +29,15 @@ algorithms:
   #     lengthscale: 1.0
   #     scale_variance: population
   #     noise_variance: 0.09
+
+  GPyGP:
+    random_seed: 0
+    m_repeats: 1
+    kernel: RBF
+    kernel_kwargs:
+      lengthscale: 1.0
+      scale_variance: population
+      noise_variance: 0.09
 
   # GeorgeGP:
   #   random_seed: 0

@@ -46,7 +46,9 @@ class Dataset(common.Component):
         y = fX + z
 
         # Here we split the data up to train, test splits
-        return DataInstance(D=D, N=self.n_samples, X=X, fX=fX, z=z, y=y).split(self.n_train_ratio)
+        data = DataInstance(D=D, N=self.n_samples, X=X, fX=fX, z=z, y=y)
+        train_data, test_data = data.split(self.n_train_ratio)
+        return train_data, test_data, data
 
 class Function(Dataset):
     def __init__(self, **kwargs):

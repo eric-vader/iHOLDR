@@ -11,13 +11,15 @@ class GPyGP(CommonGP):
         'noise_variance':'noise_variance',
         'scale_variance':'variance'
     }
+    def adapt_data(self, data):
+        data.y = data.y[:,None]
+        return data
+        
     def __init__(self, kernel, **kwargs):
         super().__init__(**kwargs)
         self.Kernel = getattr(GPy.kern, kernel)
         self.kernel_kwargs['input_dim'] = self.train_data.D
         self.noise_variance = self.kernel_kwargs.pop('noise_variance')
-    
-        self.train_data.y = self.train_data.y[:,None]
 
     def compute_log_likelihood(self):
         kernel = self.Kernel(**self.kernel_kwargs)
