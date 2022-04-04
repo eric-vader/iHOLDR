@@ -18,8 +18,8 @@ dependencies:
   - conda-forge::configspace==0.4.20
   - pytorch::pytorch
   - conda-forge::cudatoolkit=11.3
+  - conda-forge::tensorflow==2.7.0
   - conda-forge::gpflow==2.4.0
   - pip:
-    - tensorflow==2.8.0
     - pid==3.0.4
     - git+https://github.com/eric-vader/HPOlib2.git@d332596c8c1d81729d9aef9020a192c8ca8268ae#egg=hpolib2

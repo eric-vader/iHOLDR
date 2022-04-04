@@ -26,3 +26,15 @@ class GPyGP(CommonGP):
         model = GPy.models.GPRegression(self.train_data.X, self.train_data.y, kernel)
         model.Gaussian_noise.fix(self.noise_variance)
         return model.log_likelihood()
+
+    def predict(self, X):
+        kernel = self.Kernel(**self.kernel_kwargs)
+        model = GPy.models.GPRegression(self.train_data.X, self.train_data.y, kernel)
+        model.Gaussian_noise.fix(self.noise_variance)
+        
+        model.optimize(optimizer='lbfgs', max_iters=15000)
+
+        y_predicted, y_predicted_confidence = model.predict(X)
+        opt_kernel_params = (np.float64(kernel.variance.values), np.float64(kernel.lengthscale.values))
+
+        return y_predicted, model.log_likelihood(), opt_kernel_params

@@ -4,6 +4,7 @@ import scipy
 import logging
 from time import process_time_ns
 import resource
+from sklearn.metrics import mean_squared_error
 
 import common
 from config import Config
@@ -12,7 +13,7 @@ class CommonGP(common.Component):
     kernel_kwargs_mapper = {}
     def kernel_kwargs_adaptor(self, kernel_kwargs):
         return { (self.kernel_kwargs_mapper[k] if k in self.kernel_kwargs_mapper else k) : v for k,v in kernel_kwargs.items()  }
-    def __init__(self, datasets, kernel_kwargs, m_repeats, test_mode=False, **kwargs):
+    def __init__(self, datasets, kernel_kwargs, m_repeats, optimizer_kwargs, test_mode=False, **kwargs):
         super().__init__(**kwargs)
         self.rng = np.random.default_rng(self.random_seed)
         
@@ -24,17 +25,21 @@ class CommonGP(common.Component):
         self.kernel_kwargs_original = kernel_kwargs.copy()
         self.kernel_kwargs = self.kernel_kwargs_adaptor(kernel_kwargs)
 
+        self.optimizer_kwargs = optimizer_kwargs
+
         self.m_repeats = m_repeats
 
         # Optional parameter for testing
         self.test_mode = test_mode
 
+    def adapt_data(self, data):
+        return data
+
     # Measured, but must return a python float
     def compute_log_likelihood(self) -> np.float64:
         raise NotImplementedError
 
-    # Measured, but must return a tuple of hypers (lengthscale, scale_variance, noise_variance)
-    def optimize_hypers(self):
+    def predict(self, X) -> np.ndarray:
         raise NotImplementedError
 
     def run(self):
@@ -44,9 +49,11 @@ class CommonGP(common.Component):
 
         metrics_dict = {}
 
+        logging.info("Computing log likelihood")
         start_time_ns = process_time_ns() 
         for i in range(self.m_repeats):
             log_likelihood = self.compute_log_likelihood()
+        logging.info(f"log_likelihood = {log_likelihood}")
 
         time_taken_ns = process_time_ns()-start_time_ns
         metrics_dict['time_taken_ns'] = time_taken_ns / self.m_repeats
@@ -54,6 +61,11 @@ class CommonGP(common.Component):
         # maximum resident set size, maxrss kilobytes
         metrics_dict['ru_maxrss_kb'] = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         metrics_dict['log_likelihood'] = log_likelihood
+
+        logging.info(f"Computing prediction from kernel with kernel_params = {self.kernel_kwargs_original['scale_variance'], self.kernel_kwargs_original['lengthscale']}")
+        y_predicted, opt_log_likelihood, opt_kernel_params = self.predict(self.test_data.X)
+        rmse = mean_squared_error(self.test_data.y, y_predicted, squared=False)
+        logging.info(f"RMSE = {rmse}, opt_log_likelihood = {opt_log_likelihood}, opt_kernel_params = {opt_kernel_params}")
 
         mlflow_logger = self.config.configs['mlflow_logging']
         mlflow_logger.log_metrics(metrics_dict, None)

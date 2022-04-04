@@ -1,7 +1,7 @@
 datasets:
   Function:
     random_seed: 0
-    n_samples: 200
+    n_samples: 250
     n_train_ratio: 0.8
     fn_kwargs:
       fn: 'lambda x:np.sin(x)'
@@ -19,9 +19,10 @@ algorithms:
   #     lengthscale: 1.0
   #     scale_variance: population
   #     noise_variance: 0.09
+  #   optimizer_kwargs:
+  #     method: L-BFGS-B
 
   # SklearnGP:
-  #   test_mode: True
   #   random_seed: 0
   #   m_repeats: 1
   #   kernel: RBF
@@ -29,15 +30,19 @@ algorithms:
   #     lengthscale: 1.0
   #     scale_variance: population
   #     noise_variance: 0.09
+  #   optimizer_kwargs:
+  #     optimizer: fmin_l_bfgs_b
 
-  GPyGP:
-    random_seed: 0
-    m_repeats: 1
-    kernel: RBF
-    kernel_kwargs:
-      lengthscale: 1.0
-      scale_variance: population
-      noise_variance: 0.09
+  # GPyGP:
+  #   random_seed: 0
+  #   m_repeats: 1
+  #   kernel: RBF
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.09
+  #   optimizer_kwargs:
+  #     method: L-BFGS-B
 
   # GeorgeGP:
   #   random_seed: 0
@@ -48,6 +53,8 @@ algorithms:
   #     lengthscale: 1.0
   #     scale_variance: population
   #     noise_variance: 0.09
+  #   optimizer_kwargs:
+  #     method: L-BFGS-B
 
   # GeorgeGP:
   #   random_seed: 0
@@ -58,6 +65,8 @@ algorithms:
   #     lengthscale: 1.0
   #     scale_variance: population
   #     noise_variance: 0.09
+  #   optimizer_kwargs:
+  #     method: L-BFGS-B
 
   # PyTorchAlexanderGP:
   #   random_seed: 0
@@ -70,6 +79,8 @@ algorithms:
   #     lengthscale: 1.0
   #     scale_variance: population
   #     noise_variance: 0.09
+  #   optimizer_kwargs:
+  #     method: L-BFGS-B
 
   # PyTorchAlexanderGP:
   #   random_seed: 0
@@ -82,19 +93,22 @@ algorithms:
   #     lengthscale: 1.0
   #     scale_variance: population
   #     noise_variance: 0.09
+  #   optimizer_kwargs:
+  #     method: L-BFGS-B
 
-
-  # PyTorchGP:
-  #   random_seed: 0
-  #   m_repeats: 1
-  #   kernel: RBFKernel
-  #   output_device: cuda:0
-  #   n_devices: 1
-  #   preconditioner_size: 100
-  #   kernel_kwargs:
-  #     lengthscale: 1.0
-  #     scale_variance: population
-  #     noise_variance: 0.09
+  PyTorchGP:
+    random_seed: 0
+    m_repeats: 1
+    kernel: RBFKernel
+    output_device: cuda:0
+    n_devices: 1
+    preconditioner_size: 100
+    kernel_kwargs:
+      lengthscale: 1.0
+      scale_variance: population
+      noise_variance: 0.09
+    optimizer_kwargs:
+      method: L-BFGS-B
 
   # PyTorchGP:
   #   random_seed: 0

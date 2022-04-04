@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 import gpflow
 import numpy as np
-import logging
+
+from gpflow.utilities import set_trainable
 
 from algorithms.commonGP import CommonGP
 
@@ -25,3 +26,19 @@ class GPflowGP(CommonGP):
         model = gpflow.models.GPR(data=(self.train_data.X, self.train_data.y), kernel=kernel)
         model.likelihood.variance.assign(self.noise_variance)
         return model.log_marginal_likelihood().numpy()
+
+    def predict(self, X):
+
+        kernel = self.Kernel(**self.kernel_kwargs)
+        model = gpflow.models.GPR(data=(self.train_data.X, self.train_data.y), kernel=kernel, mean_function=None)
+        model.likelihood.variance.assign(self.noise_variance)
+        # We fix model noise
+        set_trainable(model.likelihood.variance, False)
+
+        scipy_opt = gpflow.optimizers.Scipy()
+        scipy_opt.minimize(model.training_loss, model.trainable_variables)
+
+        y_predicted, y_predicted_confidence = model.predict_f(X)
+        opt_kernel_params = (np.float64(model.kernel.variance.numpy()), np.float64(model.kernel.lengthscales.numpy()))
+        
+        return y_predicted.numpy(), model.log_marginal_likelihood().numpy(), opt_kernel_params
