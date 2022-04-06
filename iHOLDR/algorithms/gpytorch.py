@@ -97,7 +97,7 @@ class PyTorchGP(CommonGP):
         # Zero gradients from previous iteration
         loss = optimizer.step(closure)
 
-        logging.info('Final - Loss: %.3f   lengthscale: %.3f   outputscale: %.3f   noise: %.5f' % (
+        logging.debug('Final - Loss: %.3f   lengthscale: %.3f   outputscale: %.3f   noise: %.5f' % (
             loss.item(),
             model.get_lengthscale().item(),
             model.get_outputscale().item(),
@@ -247,7 +247,7 @@ class PyTorchAlexanderGP(PyTorchGP):
             loss.backward()
 
             i = -1
-            logging.info('Iter %d/%d - Loss: %.3f   lengthscale: %.3f   outputscale: %.3f   noise: %.5f' % (
+            logging.debug('Iter %d/%d - Loss: %.3f   lengthscale: %.3f   outputscale: %.3f   noise: %.5f' % (
                 i + 1, max_iter, loss.item(),
                 model.get_lengthscale().item(),
                 model.get_outputscale().item(),
@@ -258,7 +258,7 @@ class PyTorchAlexanderGP(PyTorchGP):
                 options = {'closure': closure, 'current_loss': loss, 'max_ls': 10}
                 loss, _, _, _, _, _, _, fail = optimizer.step(options)
 
-                logging.info('Iter %d/%d - Loss: %.3f   lengthscale: %.3f   outputscale: %.3f   noise: %.5f' % (
+                logging.debug('Iter %d/%d - Loss: %.3f   lengthscale: %.3f   outputscale: %.3f   noise: %.5f' % (
                     i + 1, max_iter, loss.item(),
                     model.get_lengthscale().item(),
                     model.get_outputscale().item(),
@@ -266,10 +266,10 @@ class PyTorchAlexanderGP(PyTorchGP):
                 ))
 
                 if fail:
-                    logging.info('Convergence reached!')
+                    logging.debug('Convergence reached!')
                     break
 
-        logging.info(f"Finished training on {self.train_x.size(0)} data points using {self.n_devices} {self.output_device}s.")
+        logging.debug(f"Finished training on {self.train_x.size(0)} data points using {self.n_devices} {self.output_device}s.")
         return model, likelihood
     def find_best_partition_setting(self):
         N = self.train_x.size(0)
@@ -279,7 +279,7 @@ class PyTorchAlexanderGP(PyTorchGP):
         settings = [0] + [int(n) for n in np.ceil(N / 2**np.arange(1, np.floor(np.log2(N))))]
 
         for checkpoint_size in settings:
-            logging.info('Number of devices: {} -- Kernel partition size: {}'.format(self.n_devices, checkpoint_size))
+            logging.debug('Number of devices: {} -- Kernel partition size: {}'.format(self.n_devices, checkpoint_size))
             try:
                 # Try a full forward and backward pass with this setting to check memory usage
                 _, _ = self.train(checkpoint_size=checkpoint_size, max_iter=1)

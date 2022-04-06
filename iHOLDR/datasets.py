@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from hpolib.benchmarks import synthetic_functions
 # Hacks to get the import to work.
 from hpolib.benchmarks.synthetic_functions.rosenbrock import Rosenbrock5D
+synthetic_functions.Rosenbrock5D = Rosenbrock5D
 
 @dataclass
 class DataInstance:
@@ -60,7 +61,9 @@ class Function(Dataset):
             _fn = eval(fn)
         else:
             _fn = fn
-        
+        return self.apply_to_X_fX(_fn, bounds)
+
+    def apply_to_X_fX(self, _fn, bounds):
         D = len(bounds)
         low, high = np.swapaxes(bounds, 1, 0)
         
@@ -68,3 +71,14 @@ class Function(Dataset):
         
         fX = np.fromiter((_fn(xi) for xi in X), X.dtype)
         return D, X, fX
+
+class HpolibFunction(Function):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def generate_X_fX(self, hpo_fn_ref):
+
+        hpo_fn = getattr(synthetic_functions, hpo_fn_ref)()
+        bounds = hpo_fn.get_meta_information()['bounds']
+        
+        return self.apply_to_X_fX(hpo_fn, bounds)
