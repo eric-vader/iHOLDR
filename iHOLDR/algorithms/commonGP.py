@@ -62,10 +62,10 @@ class CommonGP(common.Component):
         metrics_dict['ru_maxrss_kb'] = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         metrics_dict['log_likelihood'] = log_likelihood
 
-        logging.info(f"Computing prediction from kernel with kernel_params = {self.kernel_kwargs_original['scale_variance'], self.kernel_kwargs_original['lengthscale']}")
+        logging.info(f"Starting prediction using kernel with kernel_params = (var, ls) = {self.kernel_kwargs_original['scale_variance'], self.kernel_kwargs_original['lengthscale']}")
         y_predicted, opt_log_likelihood, opt_kernel_params = self.predict(self.test_data.X)
         rmse = mean_squared_error(self.test_data.y, y_predicted, squared=False)
-        logging.info(f"RMSE = {rmse}, opt_log_likelihood = {opt_log_likelihood}, opt_kernel_params = {opt_kernel_params}")
+        logging.info(f"RMSE = {rmse}, opt_log_likelihood = {opt_log_likelihood}, opt_kernel_params = (var, ls) = {opt_kernel_params}")
 
         mlflow_logger = self.config.configs['mlflow_logging']
         mlflow_logger.log_metrics(metrics_dict, None)
