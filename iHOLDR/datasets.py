@@ -11,6 +11,7 @@ from hpolib.benchmarks import synthetic_functions
 # Hacks to get the import to work.
 from hpolib.benchmarks.synthetic_functions.rosenbrock import Rosenbrock5D
 synthetic_functions.Rosenbrock5D = Rosenbrock5D
+import GPy
 
 @dataclass
 class DataInstance:
@@ -82,3 +83,31 @@ class HpolibFunction(Function):
         bounds = hpo_fn.get_meta_information()['bounds']
         
         return self.apply_to_X_fX(hpo_fn, bounds)
+
+class GPFunction(Function):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def generate_X_fX(self, bounds, kernel, kernel_kwargs):
+
+        D = len(bounds)
+        X = self.generate_grid(bounds, D)
+
+        Kernel = getattr(GPy.kern, kernel)
+        ker = Kernel(input_dim=D, **kernel_kwargs)
+        logging.info(f"Ground truth kernel_params = (var, ls) = {(kernel_kwargs['variance'], kernel_kwargs['lengthscale'])}")
+        
+        mu = np.zeros(self.n_samples) #(N*N)
+        C = ker.K(X, X) #(N*N)
+        # The following function will generate n_functions * (N*N)
+        fX = self.rng.multivariate_normal(mu, C, (1), check_valid='raise').reshape(-1)
+        return D, X, fX
+
+    def generate_grid(self, bounds, D):
+        samples_per_dim = int(np.ceil(np.power(self.n_samples, 1/D)))
+        X_domain = np.swapaxes(np.linspace(*np.swapaxes(bounds,0,1), samples_per_dim),0,1)
+        # This generates a N-Dim Grid of size approx. n_samples
+        X_overflow = np.array(np.meshgrid(*X_domain)).T.reshape(-1, D)
+        # Now we only choose subset of it, to fit the n_samples req
+        choices = self.rng.choice(len(X_overflow), size=self.n_samples, replace=False)
+        return X_overflow[choices]
