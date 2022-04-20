@@ -20,7 +20,7 @@ class GeorgeGP(CommonGP):
         self.Solver = getattr(george, solver)
 
     def compute_log_likelihood(self):
-        kernel = self.scale_variance * self.Kernel(**self.kernel_kwargs)
+        kernel = self.scale_variance * self.Kernel(ndim=self.train_data.D, **self.kernel_kwargs)
         idx = np.array(range(self.train_data.N))
         model = george.GP(kernel, solver=self.Solver)
         model.compute(self.train_data.X, self.yerr)
@@ -29,7 +29,7 @@ class GeorgeGP(CommonGP):
     
     def predict(self, X):
 
-        kernel = self.scale_variance * self.Kernel(**self.kernel_kwargs)
+        kernel = self.scale_variance * self.Kernel(ndim=self.train_data.D, **self.kernel_kwargs)
         idx = np.array(range(self.train_data.N))
         model = george.GP(kernel, solver=self.Solver)
 
