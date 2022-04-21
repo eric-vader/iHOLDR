@@ -9,15 +9,52 @@ datasets:
   #   noise_kwargs:
   #     mean: 0
   #     variance: 0.0001
-  HpolibFunction:
-    random_seed: 0
-    n_samples: 250
-    n_train_ratio: 0.8
-    fn_kwargs:
-      hpo_fn_ref: Branin
-    noise_kwargs:
-      mean: 0
-      variance: 0.01
+
+  # HpolibFunction:
+  #   random_seed: 0
+  #   n_samples: 250
+  #   n_train_ratio: 0.8
+  #   fn_kwargs:
+  #     hpo_fn_ref: Branin
+  #   noise_kwargs:
+  #     mean: 0
+  #     variance: 0.0001
+
+  # HpolibFunction:
+  #   random_seed: 0
+  #   n_samples: 250
+  #   n_train_ratio: 0.8
+  #   fn_kwargs:
+  #     hpo_fn_ref: Hartmann6
+  #   noise_kwargs:
+  #     mean: 0
+  #     variance: 0.0001
+
+  # GPFunction:
+  #   random_seed: 0
+  #   n_samples: 1000
+  #   n_train_ratio: 0.8
+  #   fn_kwargs:
+  #     bounds: [[0,1], [0,1], [0,1], [0,1]]
+  #     kernel: RBF
+  #     kernel_kwargs:
+  #       lengthscale: 0.01
+  #       variance: 0.5
+  #   noise_kwargs:
+  #     mean: 0
+  #     variance: 0.0001
+      
+  # UCIFunction:
+  #   is_pre_split: True
+  #   random_seed: 0
+  #   n_samples: 1000
+  #   n_train_ratio: 0.8
+  #   fn_kwargs:
+  #     dataset: protein
+  #   noise_kwargs:
+  #     mean: 0
+  #     variance: 0.0001
+
 algorithms:
 
   # GPflowGP:
@@ -31,16 +68,16 @@ algorithms:
   #   optimizer_kwargs:
   #     method: L-BFGS-B
 
-  # SklearnGP:
-  #   random_seed: 0
-  #   m_repeats: 1
-  #   kernel: RBF
-  #   kernel_kwargs:
-  #     lengthscale: 1.0
-  #     scale_variance: population
-  #     noise_variance: 0.01
-  #   optimizer_kwargs:
-  #     optimizer: fmin_l_bfgs_b
+  SklearnGP:
+    random_seed: 0
+    m_repeats: 1
+    kernel: RBF
+    kernel_kwargs:
+      lengthscale: 1.0
+      scale_variance: population
+      noise_variance: 0.01
+    optimizer_kwargs:
+      optimizer: fmin_l_bfgs_b
 
   # GPyGP:
   #   random_seed: 0
@@ -77,19 +114,19 @@ algorithms:
   #   optimizer_kwargs:
   #     method: L-BFGS-B
 
-  PyTorchAlexanderGP:
-    random_seed: 0
-    m_repeats: 1
-    kernel: RBFKernel
-    output_device: cuda:0
-    n_devices: 1
-    preconditioner_size: 100
-    kernel_kwargs:
-      lengthscale: 1.0
-      scale_variance: population
-      noise_variance: 0.01
-    optimizer_kwargs:
-      max_iter: 15000
+  # PyTorchAlexanderGP:
+  #   random_seed: 0
+  #   m_repeats: 1
+  #   kernel: RBFKernel
+  #   output_device: cuda:0
+  #   n_devices: 1
+  #   preconditioner_size: 100
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.01
+  #   optimizer_kwargs:
+  #     max_iter: 15000
 
   # PyTorchAlexanderGP:
   #   random_seed: 0

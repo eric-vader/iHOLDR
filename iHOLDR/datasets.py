@@ -12,6 +12,9 @@ from hpolib.benchmarks import synthetic_functions
 from hpolib.benchmarks.synthetic_functions.rosenbrock import Rosenbrock5D
 synthetic_functions.Rosenbrock5D = Rosenbrock5D
 import GPy
+import csv
+
+from uci_datasets import Dataset as UCIDataset
 
 @dataclass
 class DataInstance:
@@ -29,7 +32,7 @@ class DataInstance:
             DataInstance(D=self.D, N=self.N-N_ratioed, X=self.X[N_ratioed:], fX=self.fX[N_ratioed:], z=self.z[N_ratioed:], y=self.y[N_ratioed:])
 
 class Dataset(common.Component):
-    def __init__(self, noise_kwargs, n_samples, fn_kwargs, n_train_ratio, **kwargs):
+    def __init__(self, noise_kwargs, fn_kwargs, n_train_ratio, n_samples=None, **kwargs):
         super().__init__(**kwargs)
         self.rng = np.random.default_rng(self.random_seed)
         self.n_samples = n_samples
@@ -44,6 +47,9 @@ class Dataset(common.Component):
         return self.rng.normal(mean, np.sqrt(variance), self.n_samples)
     def generate_data(self):
         D, X, fX = self.generate_X_fX(**self.fn_kwargs)
+        if self.n_samples == None:
+            self.n_samples = len(X)
+
         z = self.generate_noise(**self.noise_kwargs)
         y = fX + z
 
@@ -51,6 +57,9 @@ class Dataset(common.Component):
         data = DataInstance(D=D, N=self.n_samples, X=X, fX=fX, z=z, y=y)
         train_data, test_data = data.split(self.n_train_ratio)
         return train_data, test_data, data
+    def generate_X_fX(self, **fn_kwargs):
+        raise NotImplementedError
+        # Must return of shape X=(self.n_samples, D) and fX=(self.n_samples,)
 
 class Function(Dataset):
     def __init__(self, **kwargs):
@@ -111,3 +120,100 @@ class GPFunction(Function):
         # Now we only choose subset of it, to fit the n_samples req
         choices = self.rng.choice(len(X_overflow), size=self.n_samples, replace=False)
         return X_overflow[choices]
+
+# We follow the convention from Exact Gaussian Processes on a Million Data Points
+class UCIFunction(Function):
+    def __init__(self, is_pre_split, **kwargs):
+        super().__init__(**kwargs)
+        self.uci_loader = self.config.configs['uci']
+        self.is_pre_split = is_pre_split
+
+    def generate_data(self):
+
+        # Use our own split
+        if not self.is_pre_split:
+            return super().generate_data()
+        
+        # From documentation that the 
+        assert(self.random_seed<10)
+        uci_dataset = UCIDataset(base_path=self.uci_loader.get_path('uci_datasets'), **self.fn_kwargs)
+        X_train, fX_train, X_test, fX_test = uci_dataset.get_split(split=self.random_seed)
+
+        if self.n_samples == None:
+            self.n_samples = len(X_train) + len(X_test)
+        else:
+            total_samples = len(X_train) + len(X_test)
+
+            n_train_samples = int(np.ceil(self.n_samples * len(X_train) / total_samples))
+            n_test_samples = self.n_samples - n_train_samples
+
+            train_choices = self.rng.choice(len(X_train), size=n_train_samples, replace=False)
+            test_choices = self.rng.choice(len(X_test), size=n_test_samples, replace=False)
+
+            X_train = X_train[train_choices]
+            fX_train = fX_train[train_choices]
+            X_test = X_test[test_choices]
+            fX_test = fX_test[test_choices]
+
+        assert(fX_train.shape[1]==1)
+        # Flatten fX
+        fX_train = fX_train.reshape(-1)
+        fX_test = fX_test.reshape(-1)
+
+        z = self.generate_noise(**self.noise_kwargs)
+        z_train = z[:len(X_train)]
+        z_test = z[len(X_train):]
+
+        y_train = fX_train + z_train
+        y_test = fX_test + z_test
+
+        D = uci_dataset.x.shape[1]
+
+        X = np.concatenate((X_train, X_test), axis=0)
+        fX = np.concatenate((fX_train, fX_test), axis=0)
+        y = np.concatenate((y_train, y_test), axis=0)
+        # Here we split the data up to train, test splits
+        data = DataInstance(D=D, N=self.n_samples, X=X, fX=fX, z=z, y=y)
+
+        train_data = DataInstance(D=D, N=len(X_train), X=X_train, fX=fX_train, z=z_train, y=y_train)
+        test_data = DataInstance(D=D, N=len(X_test), X=X_test, fX=fX_test, z=z_test, y=y_test)
+
+        return train_data, test_data, data
+
+    def load_manual(self, filename, has_header, predict_index):
+        dataset_path = self.uci_loader.get_path(filename)
+        with open(dataset_path) as data_csvfile:
+            reader = csv.reader(data_csvfile)
+            dataset = [ row for row in reader ]
+
+        if has_header:
+            dataset = dataset[1:]
+
+        dataset = np.array(dataset, dtype=np.float64)
+
+        if self.n_samples != None:
+            choices = self.rng.choice(len(dataset), size=self.n_samples, replace=False)
+            dataset = dataset[choices]
+
+        fX = dataset[:,predict_index]
+        X = dataset[:,1:]
+        D = len(X[0])
+
+        return D, X, fX
+    
+    def generate_X_fX(self, **fn_kwargs):
+        uci_dataset = UCIDataset(base_path=self.uci_loader.get_path('uci_datasets'), **fn_kwargs)
+        
+        assert(uci_dataset.y.shape[1]==1)
+
+        X = uci_dataset.x
+        D = X.shape[1]
+        fX = uci_dataset.y.reshape(-1)
+
+        if self.n_samples != None:
+            choices = self.rng.choice(X.shape[0], size=self.n_samples, replace=False)
+
+            X = X[choices]
+            fX = fX[choices]
+
+        return D, X, fX

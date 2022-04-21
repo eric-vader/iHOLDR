@@ -15,6 +15,9 @@ Directory:
     data: 
         path: [ "{TEMP}", data ]
         exist_ok: False
+    uci: 
+        path: [ "~", uci ]
+        exist_ok: True
 Daemon:
     daemon:
         path: [ "/", dev, shm ]
