@@ -32,6 +32,8 @@ class CommonGP(common.Component):
         # Optional parameter for testing
         self.test_mode = test_mode
 
+        self.mlflow_logger = self.config.configs['mlflow_logging']
+
     def adapt_data(self, data):
         return data
 
@@ -42,6 +44,12 @@ class CommonGP(common.Component):
     def predict(self, X) -> np.ndarray:
         raise NotImplementedError
 
+    def clean_up(self):
+        pass
+
+    def visualize(self):
+        pass
+
     def run(self):
         if self.test_mode:
             self.run_test()
@@ -50,13 +58,17 @@ class CommonGP(common.Component):
         metrics_dict = {}
 
         logging.info("Computing log likelihood")
-        start_time_ns = process_time_ns() 
+        
+        total_time_taken_ns = 0
         for i in range(self.m_repeats):
+            start_time_ns = process_time_ns() 
             log_likelihood = self.compute_log_likelihood()
+            total_time_taken_ns += process_time_ns()-start_time_ns
+            # Clean-up
+            self.clean_up()
         logging.info(f"log_likelihood = {log_likelihood}")
 
-        time_taken_ns = process_time_ns()-start_time_ns
-        metrics_dict['time_taken_ns'] = time_taken_ns / self.m_repeats
+        metrics_dict['time_taken_ns'] = total_time_taken_ns / self.m_repeats
         # https://stackoverflow.com/questions/12050913/whats-the-unit-of-ru-maxrss-on-linux
         # maximum resident set size, maxrss kilobytes
         metrics_dict['ru_maxrss_kb'] = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
@@ -66,9 +78,10 @@ class CommonGP(common.Component):
         y_predicted, opt_log_likelihood, opt_kernel_params = self.predict(self.test_data.X)
         rmse = mean_squared_error(self.test_data.y, y_predicted, squared=False)
         logging.info(f"RMSE = {rmse}, opt_log_likelihood = {opt_log_likelihood}, opt_kernel_params = (var, ls) = {opt_kernel_params}")
+        self.clean_up()
 
-        mlflow_logger = self.config.configs['mlflow_logging']
-        mlflow_logger.log_metrics(metrics_dict, None)
+        self.mlflow_logger.log_metrics(metrics_dict, None)
+        self.visualize()
 
     def run_test(self):
         logging.info(f'Conducting tests on {self.__class__.__name__}')
@@ -84,8 +97,7 @@ class CommonGP(common.Component):
                 test_all &= v
         metrics_dict['test'] = test_all
 
-        mlflow_logger = self.config.configs['mlflow_logging']
-        mlflow_logger.log_metrics(metrics_dict, None)
+        self.mlflow_logger.log_metrics(metrics_dict, None)
 
     def test_type_compute_log_likelihood(self, metrics_dict):
         logging.info('Test: compute_log_likelihood() must return a np.float64')

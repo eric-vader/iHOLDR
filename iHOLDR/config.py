@@ -116,6 +116,8 @@ class MlflowLogger(ConfigItem):
         self.retry_fn(mlflow.set_tags, tags=tags)
     def log_artifacts(self, local_dir, artifact_path=None):
         self.retry_fn(mlflow.log_artifacts, local_dir=local_dir, artifact_path=artifact_path)
+    def log_figure(self, figure, artifact_file):
+        self.retry_fn(mlflow.log_figure, figure=figure, artifact_file=artifact_file)
     def finalize(self):
         for p in self.paths_logged:
             self.log_artifacts(p)

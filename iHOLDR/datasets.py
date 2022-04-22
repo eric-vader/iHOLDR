@@ -31,6 +31,12 @@ class DataInstance:
         return DataInstance(D=self.D, N=N_ratioed, X=self.X[:N_ratioed], fX=self.fX[:N_ratioed], z=self.z[:N_ratioed], y=self.y[:N_ratioed]), \
             DataInstance(D=self.D, N=self.N-N_ratioed, X=self.X[N_ratioed:], fX=self.fX[N_ratioed:], z=self.z[N_ratioed:], y=self.y[N_ratioed:])
 
+    def rearrange(self, idx):
+        self.X[:] = self.X[idx]
+        self.fX[:] = self.fX[idx]
+        self.z[:] = self.z[idx]
+        self.y[:] = self.y[idx]
+
 class Dataset(common.Component):
     def __init__(self, noise_kwargs, fn_kwargs, n_train_ratio, n_samples=None, **kwargs):
         super().__init__(**kwargs)
