@@ -88,7 +88,8 @@ algorithms:
   #     scale_variance: population
   #     noise_variance: 0.01
   #   optimizer_kwargs:
-  #     method: L-BFGS-B
+  #     optimizer: lbfgs
+  #     max_iters: 15000
 
   # # SGPR
   # GPyGP:
@@ -96,29 +97,33 @@ algorithms:
   #   m_repeats: 1
   #   model: SparseGPRegression
   #   model_kwargs:
-  #     num_inducing: 512
+  #     Z: 512
   #   kernel: RBF
   #   kernel_kwargs:
   #     lengthscale: 1.0
   #     scale_variance: population
   #     noise_variance: 0.01
   #   optimizer_kwargs:
-  #     method: L-BFGS-B
+  #     optimizer: adam
+  #     max_iters: 100
 
-  # SVGP
+  # # SVGP
   # GPyGP:
   #   random_seed: 0
   #   m_repeats: 1
-  #   model: SparseGPRegression
+  #   model: SVGPRegression
   #   model_kwargs:
-  #     num_inducing: 512
+  #     Z: 1024
+  #     num_latent_functions: 1
+  #     batchsize: 1024
   #   kernel: RBF
   #   kernel_kwargs:
   #     lengthscale: 1.0
   #     scale_variance: population
   #     noise_variance: 0.01
   #   optimizer_kwargs:
-  #     method: L-BFGS-B
+  #     optimizer: adam
+  #     max_iters: 100
 
   # GeorgeGP:
   #   random_seed: 0

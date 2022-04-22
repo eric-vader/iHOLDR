@@ -36,7 +36,7 @@ class GPflowGP(CommonGP):
         set_trainable(model.likelihood.variance, False)
 
         scipy_opt = gpflow.optimizers.Scipy()
-        scipy_opt.minimize(model.training_loss, model.trainable_variables)
+        scipy_opt.minimize(model.training_loss, model.trainable_variables, **self.optimizer_kwargs)
 
         y_predicted, y_predicted_confidence = model.predict_f(X)
         opt_kernel_params = (np.float64(model.kernel.variance.numpy()), np.float64(model.kernel.lengthscales.numpy()))

@@ -23,3 +23,4 @@ dependencies:
   - pip:
     - pid==3.0.4
     - git+https://github.com/eric-vader/HPOlib2.git@d332596c8c1d81729d9aef9020a192c8ca8268ae#egg=hpolib2
+    - git+https://github.com/eric-vader/climin.git@2215b1abb5906a98ba95b868072b5f4f66b11679#egg=climin

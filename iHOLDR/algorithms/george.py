@@ -51,7 +51,7 @@ class GeorgeGP(CommonGP):
 
         # Run the optimization routine.
         p0 = model.get_parameter_vector()
-        results = op.minimize(nll, p0, jac=grad_nll, method="L-BFGS-B")
+        results = op.minimize(nll, p0, jac=grad_nll, **self.optimizer_kwargs)
 
         # Update the kernel and print the final log-likelihood.
         model.set_parameter_vector(results.x)

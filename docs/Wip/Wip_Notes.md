@@ -488,4 +488,12 @@ Song | @Bertin-Mahieux2011 | 515345 | 90
 Buzz | uci_datasets | 583250 | 77
 HouseElectric | uci_datasets | 2049280 | 11
 
+### Methods
+
+Stochastic Methods. Here we optimize the model parameters using the Adam Optimizer @DBLP:journals/corr/KingmaB14 which is designed for stochastic objective functions. 
+We use the implementation of Adam from @climin.
+
+1. Sparse and Variational Gaussian Process (SVGP) @hensman2014scalable
+2. Sparse Gaussian Process Regression (SGPR) @titsias2009variational 
+
 # References
