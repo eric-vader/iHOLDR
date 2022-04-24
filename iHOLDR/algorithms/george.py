@@ -6,6 +6,9 @@ import scipy.optimize as op
 from sklearn.decomposition import PCA, KernelPCA
 import sklearn
 import matplotlib.pyplot as plt
+from functools import reduce
+import networkx as nx
+from collections import defaultdict
 
 from algorithms.sklearn import SklearnGP
 from algorithms.commonGP import CommonGP
@@ -30,6 +33,9 @@ class GeorgeGP(CommonGP):
         if sk_kwargs != {}:
             sk_gp = SklearnGP(**kwargs, **sk_kwargs)
             self.Sk_Kernel = sk_gp.Kernel
+
+        self.train_data_stash = self.train_data.clone()
+        self.idx_hist = defaultdict(list)
 
     def compute_log_likelihood(self):
 
@@ -152,6 +158,27 @@ class GeorgeGP(CommonGP):
         
         self.train_data.rearrange(idx)
     
+    def rearrange_graph_kernighan(self, model, k, max_iter):
+        M = model.get_matrix(self.train_data.X)
+
+        def get_sequence(idx):
+            G = nx.Graph()
+            for i, i1 in enumerate(idx):
+                for i2 in idx[i+1:]:
+                    G.add_edge(i1, i2, weight=M[i1][i2])
+
+            return list(map(np.array,map(list, nx.algorithms.community.kernighan_lin.kernighan_lin_bisection(G, max_iter=max_iter))))
+
+        def sub_divide(idx, k=1):
+            a, b = get_sequence(idx)
+            if k == 1:
+                return np.append(a,b)
+            else:
+                return np.array(reduce(np.append, np.append(sub_divide(a, k-1), sub_divide(b, k-1))))
+        
+        idx = np.array(sub_divide(idx = np.array(range(self.train_data.N)), k=k), copy=True)
+        self.train_data.rearrange(idx)
+
     def choose_n_eigvals(self, eigvals, n_components):
         if n_components == None:
             n_components = len(eigvals)
@@ -172,8 +199,9 @@ class GeorgeGP(CommonGP):
         idx = np.concatenate(submatrices_idx)
         return idx
 
-    def clean_up(self):
-        self.train_data.restore()
+    def clean_up(self, status):
+        self.idx_hist[status].append(self.train_data.idx)
+        self.train_data = self.train_data_stash.clone()
 
     def plot_KXX(self, KXX, file_name):
         figure = plt.figure()
@@ -188,13 +216,8 @@ class GeorgeGP(CommonGP):
 
         kernel = self.scale_variance * self.Kernel(ndim=self.train_data.D, **self.kernel_kwargs)
         model = george.GP(kernel, solver=self.Solver)
-        self.plot_KXX(model.get_matrix(self.train_data.X), "george/before_kXX.png")
+        self.plot_KXX(model.get_matrix(self.train_data.X), "george/kXX.png")
 
-        self.rearrange_fn(model, **self.rearrange_kwargs)
-        self.plot_KXX(model.get_matrix(self.train_data.X), "george/after_kXX.png")
-
-        if self.rearrange_opt_rerun:
-            self.optimize_hypers(kernel, model)
-            self.rearrange_fn(model, **self.rearrange_kwargs)
-
-            self.plot_KXX(model.get_matrix(self.train_data.X), "george/afteropt_kXX.png")
+        for status, idxs in self.idx_hist.items():
+            for i, idx in enumerate(idxs):
+                self.plot_KXX(model.get_matrix(self.train_data.X[idx]), f"george/{status}_{i:02}_kXX.png")

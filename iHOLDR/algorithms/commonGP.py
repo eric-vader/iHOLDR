@@ -44,7 +44,7 @@ class CommonGP(common.Component):
     def predict(self, X) -> np.ndarray:
         raise NotImplementedError
 
-    def clean_up(self):
+    def clean_up(self, status):
         pass
 
     def visualize(self):
@@ -65,7 +65,7 @@ class CommonGP(common.Component):
             log_likelihood = self.compute_log_likelihood()
             total_time_taken_ns += process_time_ns()-start_time_ns
             # Clean-up
-            self.clean_up()
+            self.clean_up('log_likelihood')
         logging.info(f"log_likelihood = {log_likelihood}")
 
         metrics_dict['time_taken_ns'] = total_time_taken_ns / self.m_repeats
@@ -78,7 +78,7 @@ class CommonGP(common.Component):
         y_predicted, opt_log_likelihood, opt_kernel_params = self.predict(self.test_data.X)
         rmse = mean_squared_error(self.test_data.y, y_predicted, squared=False)
         logging.info(f"RMSE = {rmse}, opt_log_likelihood = {opt_log_likelihood}, opt_kernel_params = (var, ls) = {opt_kernel_params}")
-        self.clean_up()
+        self.clean_up('prediction')
 
         self.mlflow_logger.log_metrics(metrics_dict, None)
         self.visualize()
