@@ -24,6 +24,7 @@ class DataInstance:
     fX: np.ndarray
     z: np.ndarray
     y: np.ndarray
+    idx: np.ndarray = np.array([])
     def split(self, ratio):
 
         N_ratioed = int(ratio * self.N)
@@ -32,10 +33,23 @@ class DataInstance:
             DataInstance(D=self.D, N=self.N-N_ratioed, X=self.X[N_ratioed:], fX=self.fX[N_ratioed:], z=self.z[N_ratioed:], y=self.y[N_ratioed:])
 
     def rearrange(self, idx):
+        if self.idx.size == 0:
+            self.idx = np.array(range(self.N))
+        self._rearrange(idx)
+
+    def _rearrange(self, idx):
         self.X[:] = self.X[idx]
         self.fX[:] = self.fX[idx]
         self.z[:] = self.z[idx]
         self.y[:] = self.y[idx]
+        self.idx[:] = self.idx[idx]
+
+    def restore(self):
+        self.X[:] = self.X[self.idx]
+        self.fX[:] = self.fX[self.idx]
+        self.z[:] = self.z[self.idx]
+        self.y[:] = self.y[self.idx]
+        self.idx = np.array(range(self.N))
 
 class Dataset(common.Component):
     def __init__(self, noise_kwargs, fn_kwargs, n_train_ratio, n_samples=None, **kwargs):
