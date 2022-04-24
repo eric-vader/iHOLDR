@@ -9,6 +9,10 @@ import matplotlib.pyplot as plt
 from functools import reduce
 import networkx as nx
 from collections import defaultdict
+from sklearn.cluster import KMeans
+from scipy.spatial.distance import cdist
+from scipy.optimize import linear_sum_assignment
+import math
 
 from algorithms.sklearn import SklearnGP
 from algorithms.commonGP import CommonGP
@@ -179,6 +183,72 @@ class GeorgeGP(CommonGP):
         idx = np.array(sub_divide(idx = np.array(range(self.train_data.N)), k=k), copy=True)
         self.train_data.rearrange(idx)
 
+    def rearrange_kmeans_eq(self, model, n_clusters):
+
+        def get_even_clusters(X, n_clusters):
+            cluster_size = int(np.ceil(len(X)/n_clusters))
+            kmeans = KMeans(n_clusters, random_state=self.random_seed)
+            kmeans.fit(X)
+            centers = kmeans.cluster_centers_
+            centers = centers.reshape(-1, 1, X.shape[-1]).repeat(cluster_size, 1).reshape(-1, X.shape[-1])
+            distance_matrix = cdist(X, centers)
+            clusters = linear_sum_assignment(distance_matrix)[1]//cluster_size
+            return clusters
+        
+        labels = get_even_clusters(self.train_data.X, n_clusters)
+        idx = np.argsort(labels)
+        self.train_data.rearrange(idx)
+
+    def rearrange_kmeans(self, model, n_clusters):
+
+        kmeans = KMeans(n_clusters=n_clusters, random_state=self.random_seed).fit(self.train_data.X)
+        idx = np.argsort(kmeans.labels_)
+        self.train_data.rearrange(idx)
+
+    def rearrange_ga(self, model, opt_N, init_N):
+        N = self.train_data.N
+        _x = self.train_data.X
+
+        arg_idx =  np.array(range(self.train_data.N))
+
+        matrix_N = len(arg_idx)
+        matrix_half_N = math.ceil(matrix_N/2)
+        def random_indices():
+            return np.array([np.random.randint(matrix_half_N), matrix_half_N + np.random.randint(matrix_N - matrix_half_N)])
+
+        def eval_fitness(idx):
+            half_N = int(N/2)
+            lr_mat = model.get_matrix(_x[idx[:half_N]], _x[idx[half_N:]])
+            return lr_mat.sum()
+
+        # def eval_fitness(idx):
+        #     half_N = int(N/2)
+        #     lr_mat = model.get_matrix(_x[idx[:half_N]], _x[idx[half_N:]])
+        #     return np.linalg.matrix_rank(lr_mat)
+
+        cand_pop = [  ]
+        for i in range(init_N):
+            candidate_arg_idx = arg_idx.copy()
+            idx = random_indices()
+            candidate_arg_idx[idx] = np.flip(candidate_arg_idx[idx])
+            cand_pop.append((candidate_arg_idx, eval_fitness(candidate_arg_idx)))
+        for i in range(opt_N):
+            new_cand_pop = []
+            for current_cand_pop in cand_pop:
+                curr_candidate_arg_idx, old_fitness_val = current_cand_pop
+                idx = random_indices()
+                curr_candidate_arg_idx[idx] = np.flip(curr_candidate_arg_idx[idx])
+                new_fitness_val = eval_fitness(curr_candidate_arg_idx)
+                if new_fitness_val < old_fitness_val:
+                    new_cand_pop.append((curr_candidate_arg_idx, new_fitness_val))
+                else:
+                    curr_candidate_arg_idx[idx] = np.flip(curr_candidate_arg_idx[idx])
+                    new_cand_pop.append((curr_candidate_arg_idx, old_fitness_val))
+            cand_pop = new_cand_pop
+
+        best_arg_idx,_ = min(cand_pop, key=lambda x:x[1])
+        self.train_data.rearrange(best_arg_idx)
+
     def choose_n_eigvals(self, eigvals, n_components):
         if n_components == None:
             n_components = len(eigvals)
@@ -200,7 +270,8 @@ class GeorgeGP(CommonGP):
         return idx
 
     def clean_up(self, status):
-        self.idx_hist[status].append(self.train_data.idx)
+        if hasattr(self.train_data, 'idx'):
+            self.idx_hist[status].append(self.train_data.idx)
         self.train_data = self.train_data_stash.clone()
 
     def plot_KXX(self, KXX, file_name):

@@ -1,14 +1,14 @@
 datasets:
-  # Function:
-  #   random_seed: 0
-  #   n_samples: 250
-  #   n_train_ratio: 0.8
-  #   fn_kwargs:
-  #     fn: 'lambda x:np.sin(x)'
-  #     bounds: [[-10,10]]
-  #   noise_kwargs:
-  #     mean: 0
-  #     variance: 0.0001
+  Function:
+    random_seed: 0
+    n_samples: 250
+    n_train_ratio: 0.8
+    fn_kwargs:
+      fn: 'lambda x:np.sin(x)'
+      bounds: [[-10,10]]
+    noise_kwargs:
+      mean: 0
+      variance: 0.0001
 
   # HpolibFunction:
   #   random_seed: 0
@@ -20,15 +20,15 @@ datasets:
   #     mean: 0
   #     variance: 0.0001
 
-  HpolibFunction:
-    random_seed: 0
-    n_samples: 250
-    n_train_ratio: 0.8
-    fn_kwargs:
-      hpo_fn_ref: Hartmann6
-    noise_kwargs:
-      mean: 0
-      variance: 0.0001
+  # HpolibFunction:
+  #   random_seed: 0
+  #   n_samples: 250
+  #   n_train_ratio: 0.8
+  #   fn_kwargs:
+  #     hpo_fn_ref: Hartmann6
+  #   noise_kwargs:
+  #     mean: 0
+  #     variance: 0.0001
 
   # GPFunction:
   #   random_seed: 0
@@ -160,16 +160,60 @@ algorithms:
   #   optimizer_kwargs:
   #     method: L-BFGS-B
 
+  # GeorgeGP:
+  #   random_seed: 0
+  #   m_repeats: 1
+  #   solver: HODLRSolver
+  #   rearrange_fn: rearrange_graph_kernighan
+  #   rearrange_kwargs:
+  #     k: 2
+  #     max_iter: 10
+  #   kernel: ExpSquaredKernel
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.01
+  #   optimizer_kwargs:
+  #     method: L-BFGS-B
+
+  # GeorgeGP:
+  #   random_seed: 0
+  #   m_repeats: 1
+  #   solver: HODLRSolver
+  #   rearrange_fn: rearrange_kmeans
+  #   rearrange_kwargs:
+  #     n_clusters: 2
+  #   kernel: ExpSquaredKernel
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.01
+  #   optimizer_kwargs:
+  #     method: L-BFGS-B
+
+  # GeorgeGP:
+  #   random_seed: 0
+  #   m_repeats: 1
+  #   solver: HODLRSolver
+  #   rearrange_fn: rearrange_kmeans_eq
+  #   rearrange_kwargs:
+  #     n_clusters: 4
+  #   kernel: ExpSquaredKernel
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.01
+  #   optimizer_kwargs:
+  #     method: L-BFGS-B
+
   GeorgeGP:
     random_seed: 0
     m_repeats: 1
     solver: HODLRSolver
-    rearrange_fn: rearrange_graph_kernighan
+    rearrange_fn: rearrange_ga
     rearrange_kwargs:
-      k: 2
-      max_iter: 10
-    sk_kwargs:
-      kernel: RBF
+      opt_N: 1000
+      init_N: 20
     kernel: ExpSquaredKernel
     kernel_kwargs:
       lengthscale: 1.0
