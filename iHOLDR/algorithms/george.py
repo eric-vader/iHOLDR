@@ -13,6 +13,7 @@ from sklearn.cluster import KMeans
 from scipy.spatial.distance import cdist
 from scipy.optimize import linear_sum_assignment
 import math
+import copy
 
 from algorithms.sklearn import SklearnGP
 from algorithms.commonGP import CommonGP
@@ -21,7 +22,7 @@ class GeorgeGP(CommonGP):
     kernel_kwargs_mapper = {
         'lengthscale':'metric'
     }
-    def __init__(self, solver, kernel, sk_kwargs={}, rearrange_fn='rearrange_placebo', rearrange_kwargs={}, rearrange_opt_rerun=False, **kwargs):
+    def __init__(self, solver, kernel, sk_kwargs={}, rearrange_fn='rearrange_placebo', rearrange_kwargs={}, **kwargs):
         super().__init__(**kwargs)
 
         self.scale_variance = self.kernel_kwargs.pop('scale_variance')
@@ -32,14 +33,13 @@ class GeorgeGP(CommonGP):
 
         self.rearrange_fn = getattr(self, rearrange_fn)
         self.rearrange_kwargs = rearrange_kwargs
-        self.rearrange_opt_rerun = rearrange_opt_rerun
 
         if sk_kwargs != {}:
             sk_gp = SklearnGP(**kwargs, **sk_kwargs)
             self.Sk_Kernel = sk_gp.Kernel
 
         self.train_data_stash = self.train_data.clone()
-        self.idx_hist = defaultdict(list)
+        self.KXX_hist = defaultdict(list)
 
     def compute_log_likelihood(self):
 
@@ -48,6 +48,7 @@ class GeorgeGP(CommonGP):
         self.rearrange_fn(model, **self.rearrange_kwargs)
 
         model.compute(self.train_data.X, self.yerr)
+        self.model = model # KXX for visualization
 
         return model.log_likelihood(self.train_data.y)
     
@@ -59,10 +60,10 @@ class GeorgeGP(CommonGP):
 
         # https://george.readthedocs.io/en/latest/tutorials/hyper/
         opt_kernel_params = self.optimize_hypers(kernel, model)
-        if self.rearrange_opt_rerun:
-            self.rearrange_fn(model, **self.rearrange_kwargs)
+        self.rearrange_fn(model, **self.rearrange_kwargs)
 
         y_predicted, y_predicted_confidence = model.predict(self.train_data.y, X, return_var=False)
+        self.model = model # KXX for visualization
 
         return y_predicted, model.log_likelihood(self.train_data.y), opt_kernel_params
     def optimize_hypers(self, kernel, model):
@@ -270,8 +271,7 @@ class GeorgeGP(CommonGP):
         return idx
 
     def clean_up(self, status):
-        if hasattr(self.train_data, 'idx'):
-            self.idx_hist[status].append(self.train_data.idx)
+        self.KXX_hist[status].append(self.model.get_matrix(self.train_data.X))
         self.train_data = self.train_data_stash.clone()
 
     def plot_KXX(self, KXX, file_name):
@@ -289,6 +289,6 @@ class GeorgeGP(CommonGP):
         model = george.GP(kernel, solver=self.Solver)
         self.plot_KXX(model.get_matrix(self.train_data.X), "george/kXX.png")
 
-        for status, idxs in self.idx_hist.items():
-            for i, idx in enumerate(idxs):
-                self.plot_KXX(model.get_matrix(self.train_data.X[idx]), f"george/{status}_{i:02}_kXX.png")
+        for status, KXXs in self.KXX_hist.items():
+            for i, KXX in enumerate(KXXs):
+                self.plot_KXX(KXX, f"george/{status}_{i:02}_kXX.png")

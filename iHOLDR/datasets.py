@@ -36,7 +36,6 @@ class DataInstance:
         self.fX[:] = self.fX[idx]
         self.z[:] = self.z[idx]
         self.y[:] = self.y[idx]
-        self.idx = idx.copy()
 
     def clone(self):
         return DataInstance(D=self.D, N=self.N, X=self.X.copy(), fX=self.fX.copy(), z=self.z.copy(), y=self.y.copy())

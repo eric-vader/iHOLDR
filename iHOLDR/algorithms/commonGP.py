@@ -76,9 +76,13 @@ class CommonGP(common.Component):
 
         logging.info(f"Starting prediction using kernel with kernel_params = (var, ls) = {self.kernel_kwargs_original['scale_variance'], self.kernel_kwargs_original['lengthscale']}")
         y_predicted, opt_log_likelihood, opt_kernel_params = self.predict(self.test_data.X)
-        rmse = mean_squared_error(self.test_data.y, y_predicted, squared=False)
-        logging.info(f"RMSE = {rmse}, opt_log_likelihood = {opt_log_likelihood}, opt_kernel_params = (var, ls) = {opt_kernel_params}")
+        opt_rmse = mean_squared_error(self.test_data.y, y_predicted, squared=False)
+        logging.info(f"opt_rmse = {opt_rmse}, opt_log_likelihood = {opt_log_likelihood}, opt_kernel_params = (var, ls) = {opt_kernel_params}")
         self.clean_up('prediction')
+
+        metrics_dict['opt_log_likelihood'] = opt_log_likelihood
+        metrics_dict['opt_rmse'] = opt_rmse
+        metrics_dict['opt_var'], metrics_dict['opt_ls'] = opt_kernel_params
 
         self.mlflow_logger.log_metrics(metrics_dict, None)
         self.visualize()
