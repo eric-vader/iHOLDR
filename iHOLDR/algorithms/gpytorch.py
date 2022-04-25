@@ -63,7 +63,7 @@ class PyTorchGP(CommonGP):
 
             opt_kernel_params = np.float64(model.get_outputscale().cpu().numpy()), np.float64(model.get_lengthscale().cpu().numpy())
 
-        return y_predicted, opt_log_likelihood, opt_kernel_params
+        return y_predicted, np.float64(opt_log_likelihood), opt_kernel_params
 
     def train(self):
         model, likelihood = self.create_model()
@@ -204,7 +204,7 @@ class PyTorchAlexanderGP(PyTorchGP):
 
             opt_kernel_params = np.float64(model.get_outputscale().cpu().numpy()), np.float64(model.get_lengthscale().cpu().numpy())
 
-        return y_predicted, opt_log_likelihood, opt_kernel_params
+        return y_predicted, np.float64(opt_log_likelihood), opt_kernel_params
 
     def create_model(self):
         likelihood = gpytorch.likelihoods.GaussianLikelihood().to(self.output_device)

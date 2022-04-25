@@ -175,7 +175,7 @@ class UCIFunction(Function):
 
         y_train = fX_train + z_train
         y_test = fX_test + z_test
-
+        
         D = uci_dataset.x.shape[1]
 
         X = np.concatenate((X_train, X_test), axis=0)
@@ -215,9 +215,9 @@ class UCIFunction(Function):
         
         assert(uci_dataset.y.shape[1]==1)
 
-        X = uci_dataset.x
+        X = np.array(uci_dataset.x, copy=True)
         D = X.shape[1]
-        fX = uci_dataset.y.reshape(-1)
+        fX = np.array(uci_dataset.y, copy=True).reshape(-1)
 
         if self.n_samples != None:
             choices = self.rng.choice(X.shape[0], size=self.n_samples, replace=False)

@@ -60,4 +60,4 @@ class GPyGP(CommonGP):
         y_predicted, y_predicted_confidence = model.predict(X)
         opt_kernel_params = (np.float64(kernel.variance.values), np.float64(kernel.lengthscale.values))
 
-        return y_predicted, model.log_likelihood(), opt_kernel_params
+        return y_predicted, np.float64(model.log_likelihood()), opt_kernel_params
