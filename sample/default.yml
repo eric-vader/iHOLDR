@@ -1,48 +1,48 @@
 datasets:
-  Function:
-    random_seed: 0
-    n_samples: 250
-    n_train_ratio: 0.8
-    fn_kwargs:
-      fn: 'lambda x:np.sin(x)'
-      bounds: [[-10,10]]
-    noise_kwargs:
-      mean: 0
-      variance: 0.0001
-
-  # HpolibFunction:
+  # Function:
   #   random_seed: 0
-  #   n_samples: 250
+  #   n_samples: 1000
+  #   n_train_ratio: 0.8
+  #   fn_kwargs:
+  #     fn: 'lambda x:np.sin(x)'
+  #     bounds: [[-10,10]]
+  #   noise_kwargs:
+  #     mean: 0
+  #     variance: 0.01
+
+  # HpolibFunction: # 2D
+  #   random_seed: 0
+  #   n_samples: 1000
   #   n_train_ratio: 0.8
   #   fn_kwargs:
   #     hpo_fn_ref: Branin
   #   noise_kwargs:
   #     mean: 0
-  #     variance: 0.0001
+  #     variance: 0.01
 
   # HpolibFunction:
   #   random_seed: 0
-  #   n_samples: 250
+  #   n_samples: 1000
   #   n_train_ratio: 0.8
   #   fn_kwargs:
   #     hpo_fn_ref: Hartmann6
   #   noise_kwargs:
   #     mean: 0
-  #     variance: 0.0001
+  #     variance: 0.01
 
-  # GPFunction:
-  #   random_seed: 0
-  #   n_samples: 1000
-  #   n_train_ratio: 0.8
-  #   fn_kwargs:
-  #     bounds: [[0,1], [0,1], [0,1], [0,1]]
-  #     kernel: RBF
-  #     kernel_kwargs:
-  #       lengthscale: 0.01
-  #       variance: 0.5
-  #   noise_kwargs:
-  #     mean: 0
-  #     variance: 0.0001
+  GPFunction:
+    random_seed: 0
+    n_samples: 1000
+    n_train_ratio: 0.8
+    fn_kwargs:
+      bounds: [[0,1], [0,1], [0,1], [0,1], [0,1], [0,1], [0,1]]
+      kernel: RBF
+      kernel_kwargs:
+        lengthscale: 0.1
+        variance: 0.5
+    noise_kwargs:
+      mean: 0
+      variance: 0.01
       
   # UCIFunction:
   #   is_pre_split: True
@@ -53,7 +53,7 @@ datasets:
   #     dataset: protein
   #   noise_kwargs:
   #     mean: 0
-  #     variance: 0.0001
+  #     variance: 0.01
 
 algorithms:
 
@@ -92,20 +92,20 @@ algorithms:
   #     max_iters: 15000
 
   # # SGPR
-  # GPyGP:
-  #   random_seed: 0
-  #   m_repeats: 1
-  #   model: SparseGPRegression
-  #   model_kwargs:
-  #     Z: 512
-  #   kernel: RBF
-  #   kernel_kwargs:
-  #     lengthscale: 1.0
-  #     scale_variance: population
-  #     noise_variance: 0.01
-  #   optimizer_kwargs:
-  #     optimizer: adam
-  #     max_iters: 100
+  GPyGP:
+    random_seed: 0
+    m_repeats: 1
+    model: SparseGPRegression
+    model_kwargs:
+      Z: 512
+    kernel: RBF
+    kernel_kwargs:
+      lengthscale: 1.0
+      scale_variance: population
+      noise_variance: 0.01
+    optimizer_kwargs:
+      optimizer: adam
+      max_iters: 100
 
   # # SVGP
   # GPyGP:
@@ -131,7 +131,7 @@ algorithms:
   #   solver: HODLRSolver
   #   rearrange_fn: rearrange_la_pca
   #   rearrange_kwargs:
-  #     n_components: 1
+  #     n_components: null
   #   sk_kwargs:
   #     kernel: RBF
   #   kernel: ExpSquaredKernel
@@ -147,7 +147,6 @@ algorithms:
   #   m_repeats: 1
   #   solver: HODLRSolver
   #   rearrange_fn: rearrange_la_kpca
-  #   rearrange_opt_rerun: True
   #   rearrange_kwargs:
   #     n_components: 5
   #   sk_kwargs:
@@ -166,7 +165,7 @@ algorithms:
   #   solver: HODLRSolver
   #   rearrange_fn: rearrange_graph_kernighan
   #   rearrange_kwargs:
-  #     k: 2
+  #     k: 6
   #     max_iter: 10
   #   kernel: ExpSquaredKernel
   #   kernel_kwargs:
@@ -182,7 +181,7 @@ algorithms:
   #   solver: HODLRSolver
   #   rearrange_fn: rearrange_kmeans
   #   rearrange_kwargs:
-  #     n_clusters: 2
+  #     n_clusters: 32
   #   kernel: ExpSquaredKernel
   #   kernel_kwargs:
   #     lengthscale: 1.0
@@ -197,7 +196,7 @@ algorithms:
   #   solver: HODLRSolver
   #   rearrange_fn: rearrange_kmeans_eq
   #   rearrange_kwargs:
-  #     n_clusters: 4
+  #     n_clusters: 32
   #   kernel: ExpSquaredKernel
   #   kernel_kwargs:
   #     lengthscale: 1.0
@@ -206,21 +205,21 @@ algorithms:
   #   optimizer_kwargs:
   #     method: L-BFGS-B
 
-  GeorgeGP:
-    random_seed: 0
-    m_repeats: 1
-    solver: HODLRSolver
-    rearrange_fn: rearrange_ga
-    rearrange_kwargs:
-      opt_N: 1000
-      init_N: 20
-    kernel: ExpSquaredKernel
-    kernel_kwargs:
-      lengthscale: 1.0
-      scale_variance: population
-      noise_variance: 0.01
-    optimizer_kwargs:
-      method: L-BFGS-B
+  # GeorgeGP:
+  #   random_seed: 0
+  #   m_repeats: 1
+  #   solver: HODLRSolver
+  #   rearrange_fn: rearrange_ga
+  #   rearrange_kwargs:
+  #     opt_N: 100
+  #     init_N: 20
+  #   kernel: ExpSquaredKernel
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.01
+  #   optimizer_kwargs:
+  #     method: L-BFGS-B
 
   # GeorgeGP:
   #   random_seed: 0

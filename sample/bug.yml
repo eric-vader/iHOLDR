@@ -1,0 +1,24 @@
+algorithms:
+  PyTorchGP:
+    kernel: RBFKernel
+    kernel_kwargs:
+      lengthscale: 1.0
+      noise_variance: 0.01
+      scale_variance: population
+    m_repeats: 1
+    n_devices: 1
+    optimizer_kwargs:
+      max_iter: 15000
+    output_device: cuda:0
+    random_seed: 0
+datasets:
+  UCIFunction:
+    fn_kwargs:
+      dataset: protein
+    is_pre_split: false
+    n_samples: 1000
+    n_train_ratio: 0.8
+    noise_kwargs:
+      mean: 0
+      variance: 0.0001
+    random_seed: 0
