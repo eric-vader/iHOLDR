@@ -29,7 +29,11 @@ class Experiment:
         self.sub_module_hashes = {}
         self.sub_module_name_lookup = {}
         self.sub_module_instances = {}
-        for module,v in self.exp_args.items():
+        
+        # for module,v in self.exp_args.items():
+        # Fix dependencies
+        for module in ['datasets', 'algorithms']:
+            v = self.exp_args[module]
             if type(v) != dict:
                 raise Exception(f"Unexpected type for {module}, must be dict")
             if len(v.keys()) != 1:
