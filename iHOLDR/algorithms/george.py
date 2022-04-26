@@ -60,19 +60,20 @@ class GeorgeGP(CommonGP):
         model = george.GP(kernel, solver=self.Solver)
         self.rearrange_fn(model, **self.rearrange_kwargs)
 
-        # https://george.readthedocs.io/en/latest/tutorials/hyper/
-        opt_kernel_params = self.optimize_hypers(kernel, model)
-        if self.re_rearrange:
-            self.rearrange_fn(model, **self.rearrange_kwargs)
+        # You need to compute the GP once before starting the optimization.
+        model.compute(self.train_data.X, self.yerr)
+        if perform_opt:
+            # https://george.readthedocs.io/en/latest/tutorials/hyper/
+            self.optimize_hypers(kernel, model)
+            if self.re_rearrange:
+                self.rearrange_fn(model, **self.rearrange_kwargs)
+        kernel_params = tuple(np.exp(kernel.get_parameter_vector()))
 
         y_predicted, y_predicted_confidence = model.predict(self.train_data.y, X, return_var=False)
         self.model = model # KXX for visualization
 
-        return y_predicted, model.log_likelihood(self.train_data.y), opt_kernel_params
+        return y_predicted, model.log_likelihood(self.train_data.y), kernel_params
     def optimize_hypers(self, kernel, model):
-
-        # You need to compute the GP once before starting the optimization.
-        model.compute(self.train_data.X, self.yerr)
 
         # Define the objective function (negative log-likelihood in this case).
         def nll(p):
@@ -91,8 +92,6 @@ class GeorgeGP(CommonGP):
 
         # Update the kernel and print the final log-likelihood.
         model.set_parameter_vector(results.x)
-        opt_kernel_params = tuple(np.exp(kernel.get_parameter_vector()))
-        return opt_kernel_params
 
     # No rearrangement
     def rearrange_placebo(self, model, **rearrange_kwargs):

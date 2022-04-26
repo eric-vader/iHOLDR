@@ -30,9 +30,9 @@ class SklearnGP(CommonGP):
         model.fit(self.train_data.X, self.train_data.y)
         return model
 
-    def predict(self, X, optimize_hypers):
+    def predict(self, X, perform_opt):
 
-        if optimize_hypers:
+        if perform_opt:
             model = self.make_model(self.optimizer_kwargs)
         else:
             model = self.make_model()
