@@ -21,22 +21,22 @@ class GPflowGP(CommonGP):
         self.Kernel = getattr(gpflow.kernels, kernel)
         self.noise_variance = self.kernel_kwargs.pop('noise_variance')
 
-    def compute_log_likelihood(self):
-        kernel = self.Kernel(**self.kernel_kwargs)
-        model = gpflow.models.GPR(data=(self.train_data.X, self.train_data.y), kernel=kernel)
-        model.likelihood.variance.assign(self.noise_variance)
-        return model.log_marginal_likelihood().numpy()
-
-    def predict(self, X):
-
+    def make_model(self):
         kernel = self.Kernel(**self.kernel_kwargs)
         model = gpflow.models.GPR(data=(self.train_data.X, self.train_data.y), kernel=kernel, mean_function=None)
         model.likelihood.variance.assign(self.noise_variance)
-        # We fix model noise
         set_trainable(model.likelihood.variance, False)
+        return model
 
-        scipy_opt = gpflow.optimizers.Scipy()
-        scipy_opt.minimize(model.training_loss, model.trainable_variables, **self.optimizer_kwargs)
+    def compute_log_likelihood(self): 
+        return self.make_model().log_marginal_likelihood().numpy()
+
+    def predict(self, X, perform_opt):
+        model = self.make_model()
+
+        if perform_opt:
+            scipy_opt = gpflow.optimizers.Scipy()
+            scipy_opt.minimize(model.training_loss, model.trainable_variables, **self.optimizer_kwargs)
 
         y_predicted, y_predicted_confidence = model.predict_f(X)
         opt_kernel_params = (np.float64(model.kernel.variance.numpy()), np.float64(model.kernel.lengthscales.numpy()))

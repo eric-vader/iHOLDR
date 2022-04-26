@@ -45,8 +45,11 @@ class PyTorchGP(CommonGP):
             log_likelihood = model.likelihood(model(self.train_x)).log_prob(self.train_y).cpu().numpy()
             return float(log_likelihood)
 
-    def predict(self, X):
-        model, likelihood = self.train()
+    def predict(self, X, perform_opt):
+        if perform_opt:
+            model, likelihood = self.train()
+        else:
+            model, likelihood = self.create_model()
 
         with torch.no_grad(), gpytorch.settings.fast_pred_var():
             opt_log_likelihood = model.likelihood(model(self.train_x)).log_prob(self.train_y).cpu().numpy()
@@ -184,10 +187,12 @@ class PyTorchAlexanderGP(PyTorchGP):
 
             log_likelihood = model.likelihood(model(self.train_x)).log_prob(self.train_y).cpu().numpy()
             return np.float64(log_likelihood)
-    def predict(self, X):
-
-        model, likelihood = self.train(checkpoint_size=self.checkpoint_size, **self.optimizer_kwargs)
-
+    def predict(self, X, perform_opt):
+        if perform_opt:
+            model, likelihood = self.train(checkpoint_size=self.checkpoint_size, **self.optimizer_kwargs)
+        else:
+            model, likelihood = self.create_model()
+            
         with torch.no_grad(), gpytorch.beta_features.checkpoint_kernel(self.checkpoint_size), \
             gpytorch.settings.max_preconditioner_size(self.preconditioner_size), gpytorch.settings.fast_computations(log_prob=True):
 

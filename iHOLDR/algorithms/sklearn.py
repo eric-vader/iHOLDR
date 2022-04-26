@@ -17,25 +17,25 @@ class SklearnGP(CommonGP):
         self.noise_variance = self.kernel_kwargs.pop('noise_variance')
         
     def compute_log_likelihood(self):
+        model = self.make_model()
+        return model.log_marginal_likelihood(model.kernel.theta)
 
-        kernel = self.scale_variance * self.Kernel(**self.kernel_kwargs)
-        model = GaussianProcessRegressor(kernel,
-                                        alpha=self.noise_variance,
-                                        optimizer=None,
-                                        copy_X_train=False, 
-                                        random_state=self.random_seed)
-        model.fit(self.train_data.X, self.train_data.y)
-        return model.log_marginal_likelihood(kernel.theta)
-
-    def predict(self, X):
-
+    def make_model(self, optimizer_kwargs={'optimizer':None}):
         kernel = self.scale_variance * self.Kernel(**self.kernel_kwargs)
         model = GaussianProcessRegressor(kernel,
                                         alpha=self.noise_variance,
                                         copy_X_train=False,
                                         random_state=self.random_seed,
-                                        **self.optimizer_kwargs)
+                                        **optimizer_kwargs)
         model.fit(self.train_data.X, self.train_data.y)
+        return model
+
+    def predict(self, X, optimize_hypers):
+
+        if optimize_hypers:
+            model = self.make_model(self.optimizer_kwargs)
+        else:
+            model = self.make_model()
         
         # logging.info(f"Kernel parameters before fit: {kernel}")
         # logging.info(f"Kernel parameters after fit: {model.kernel_}")

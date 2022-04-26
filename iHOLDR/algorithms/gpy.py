@@ -43,19 +43,20 @@ class GPyGP(CommonGP):
             num_inducing = self.model_kwargs['Z']
             ix = self.rng.permutation(self.train_data.N)[:min(num_inducing, self.train_data.N)]
             self.model_kwargs['Z'] = self.train_data.X.view(np.ndarray)[ix].copy()
+    def make_model(self):
+        kernel = self.Kernel(**self.kernel_kwargs)
+        model = self.Model(self.train_data.X, self.train_data.y, kernel, **self.model_kwargs)
+        model.Gaussian_noise.fix(self.noise_variance)
+        return model, kernel
 
     def compute_log_likelihood(self):
-        kernel = self.Kernel(**self.kernel_kwargs)
-        model = self.Model(self.train_data.X, self.train_data.y, kernel, **self.model_kwargs)
-        model.Gaussian_noise.fix(self.noise_variance)
+        model, kernel = self.make_model()
         return np.float64(model.log_likelihood())
 
-    def predict(self, X):
-        kernel = self.Kernel(**self.kernel_kwargs)
-        model = self.Model(self.train_data.X, self.train_data.y, kernel, **self.model_kwargs)
-        model.Gaussian_noise.fix(self.noise_variance)
-        
-        model.optimize(ipython_notebook=False, **self.optimizer_kwargs)
+    def predict(self, X, perform_opt):
+        model, kernel = self.make_model()
+        if perform_opt:
+            model.optimize(ipython_notebook=False, **self.optimizer_kwargs)
 
         y_predicted, y_predicted_confidence = model.predict(X)
         opt_kernel_params = (np.float64(kernel.variance.values), np.float64(kernel.lengthscale.values))

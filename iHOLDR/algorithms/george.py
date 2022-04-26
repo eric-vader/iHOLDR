@@ -54,7 +54,7 @@ class GeorgeGP(CommonGP):
 
         return model.log_likelihood(self.train_data.y)
     
-    def predict(self, X):
+    def predict(self, X, perform_opt):
 
         kernel = self.scale_variance * self.Kernel(ndim=self.train_data.D, **self.kernel_kwargs)
         model = george.GP(kernel, solver=self.Solver)

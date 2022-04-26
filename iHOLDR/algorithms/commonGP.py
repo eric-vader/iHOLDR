@@ -37,11 +37,10 @@ class CommonGP(common.Component):
     def adapt_data(self, data):
         return data
 
-    # Measured, but must return a python float
-    def compute_log_likelihood(self) -> np.float64:
+    def compute_log_likelihood(self):
         raise NotImplementedError
 
-    def predict(self, X) -> np.ndarray:
+    def predict(self, X, perform_opt):
         raise NotImplementedError
 
     def clean_up(self, status):
@@ -65,20 +64,28 @@ class CommonGP(common.Component):
             log_likelihood = self.compute_log_likelihood()
             total_time_taken_ns += process_time_ns()-start_time_ns
             # Clean-up
-            self.clean_up('log_likelihood')
+            self.clean_up('compute_log_likelihood')
         logging.info(f"log_likelihood = {log_likelihood}")
 
         metrics_dict['time_taken_ns'] = total_time_taken_ns / self.m_repeats
         # https://stackoverflow.com/questions/12050913/whats-the-unit-of-ru-maxrss-on-linux
         # maximum resident set size, maxrss kilobytes
         metrics_dict['ru_maxrss_kb'] = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-        metrics_dict['log_likelihood'] = log_likelihood
+        
+        logging.info(f"Starting prediction (non-opt) using kernel with kernel_params = (var, ls) = {self.kernel_kwargs_original['scale_variance'], self.kernel_kwargs_original['lengthscale']}")
+        y_predicted, log_likelihood, kernel_params = self.predict(self.test_data.X, False)
+        rmse = mean_squared_error(self.test_data.y, y_predicted, squared=False)
+        logging.info(f"rmse = {rmse}, log_likelihood = {log_likelihood}, kernel_params = (var, ls) = {kernel_params}")
+        self.clean_up('prediction')
 
-        logging.info(f"Starting prediction using kernel with kernel_params = (var, ls) = {self.kernel_kwargs_original['scale_variance'], self.kernel_kwargs_original['lengthscale']}")
-        y_predicted, opt_log_likelihood, opt_kernel_params = self.predict(self.test_data.X)
+        metrics_dict['log_likelihood'] = log_likelihood
+        metrics_dict['rmse'] = rmse
+
+        logging.info(f"Starting prediction (opt) using kernel with kernel_params = (var, ls) = {self.kernel_kwargs_original['scale_variance'], self.kernel_kwargs_original['lengthscale']}")
+        y_predicted, opt_log_likelihood, opt_kernel_params = self.predict(self.test_data.X, True)
         opt_rmse = mean_squared_error(self.test_data.y, y_predicted, squared=False)
         logging.info(f"opt_rmse = {opt_rmse}, opt_log_likelihood = {opt_log_likelihood}, opt_kernel_params = (var, ls) = {opt_kernel_params}")
-        self.clean_up('prediction')
+        self.clean_up('prediction_opt')
 
         metrics_dict['opt_log_likelihood'] = opt_log_likelihood
         metrics_dict['opt_rmse'] = opt_rmse
