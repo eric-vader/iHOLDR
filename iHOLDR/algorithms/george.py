@@ -22,7 +22,7 @@ class GeorgeGP(CommonGP):
     kernel_kwargs_mapper = {
         'lengthscale':'metric'
     }
-    def __init__(self, solver, kernel, sk_kwargs={}, rearrange_fn='rearrange_placebo', rearrange_kwargs={}, **kwargs):
+    def __init__(self, solver, kernel, re_rearrange=True, sk_kwargs={}, rearrange_fn='rearrange_placebo', rearrange_kwargs={}, **kwargs):
         super().__init__(**kwargs)
 
         self.scale_variance = self.kernel_kwargs.pop('scale_variance')
@@ -40,6 +40,8 @@ class GeorgeGP(CommonGP):
 
         self.train_data_stash = self.train_data.clone()
         self.KXX_hist = defaultdict(list)
+
+        self.re_rearrange = re_rearrange
 
     def compute_log_likelihood(self):
 
@@ -60,7 +62,8 @@ class GeorgeGP(CommonGP):
 
         # https://george.readthedocs.io/en/latest/tutorials/hyper/
         opt_kernel_params = self.optimize_hypers(kernel, model)
-        self.rearrange_fn(model, **self.rearrange_kwargs)
+        if self.re_rearrange:
+            self.rearrange_fn(model, **self.rearrange_kwargs)
 
         y_predicted, y_predicted_confidence = model.predict(self.train_data.y, X, return_var=False)
         self.model = model # KXX for visualization
