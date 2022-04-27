@@ -18,7 +18,13 @@ class CommonGP(common.Component):
         self.rng = np.random.default_rng(self.random_seed)
         
         self.datasets = datasets
-        self.train_data, self.test_data, self.data = [ self.adapt_data(d) for d in datasets.generate_data() ]
+        dxs = datasets.generate_data()
+        self.train_data, self.test_data, self.data = dxs
+        # Perform any clean GT computation before going on
+        logging.info("Computing gt log likelihood")
+        self.gt_log_likelihood = self.groundtruth_log_likelihood()
+
+        self.train_data, self.test_data, self.data = [ self.adapt_data(d) for d in dxs ]
 
         if kernel_kwargs['scale_variance'] == 'population':
             kernel_kwargs['scale_variance'] = np.var(self.train_data.y)
@@ -67,7 +73,7 @@ class CommonGP(common.Component):
             self.clean_up('compute_log_likelihood')
         logging.info(f"log_likelihood = {log_likelihood}")
         
-        gt_log_likelihood = self.groundtruth_log_likelihood()
+        gt_log_likelihood = self.gt_log_likelihood
         abs_err = np.abs(log_likelihood+gt_log_likelihood)
         rel_err = abs_err/np.abs(gt_log_likelihood)
         metrics_dict['gt_log_likelihood'] = -gt_log_likelihood
