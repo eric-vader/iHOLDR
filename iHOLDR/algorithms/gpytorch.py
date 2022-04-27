@@ -14,10 +14,9 @@ class ExactGPModel(gpytorch.models.ExactGP):
         super(ExactGPModel, self).__init__(train_x, train_y, likelihood)
         self.mean_module = gpytorch.means.ConstantMean()
         self.covar_module = gpytorch.kernels.ScaleKernel(Kernel())
-
     def forward(self, x):
         mean_x = self.mean_module(x)
-        covar_x = self.covar_module(x)
+        covar_x = self.covar_module(x).add_jitter(1e-6)
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
     def get_lengthscale(self):
         return self.covar_module.base_kernel.lengthscale
@@ -149,7 +148,7 @@ class ExactAlexanderGPModel(gpytorch.models.ExactGP):
 
     def forward(self, x):
         mean_x = self.mean_module(x)
-        covar_x = self.covar_module(x)
+        covar_x = self.covar_module(x).add_jitter(1e-6)
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
     def get_lengthscale(self):
         return self.covar_module.module.base_kernel.lengthscale
@@ -192,7 +191,7 @@ class PyTorchAlexanderGP(PyTorchGP):
             model, likelihood = self.train(checkpoint_size=self.checkpoint_size, **self.optimizer_kwargs)
         else:
             model, likelihood = self.create_model()
-            
+
         with torch.no_grad(), gpytorch.beta_features.checkpoint_kernel(self.checkpoint_size), \
             gpytorch.settings.max_preconditioner_size(self.preconditioner_size), gpytorch.settings.fast_computations(log_prob=True):
 
