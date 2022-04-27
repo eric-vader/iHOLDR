@@ -66,6 +66,13 @@ class CommonGP(common.Component):
             # Clean-up
             self.clean_up('compute_log_likelihood')
         logging.info(f"log_likelihood = {log_likelihood}")
+        
+        gt_log_likelihood = self.groundtruth_log_likelihood()
+        abs_err = np.abs(log_likelihood+gt_log_likelihood)
+        rel_err = abs_err/np.abs(gt_log_likelihood)
+        metrics_dict['gt_log_likelihood'] = -gt_log_likelihood
+        metrics_dict['abs_err_ll'] = abs_err
+        metrics_dict['rel_err_ll'] = rel_err
 
         metrics_dict['time_taken_ns'] = total_time_taken_ns / self.m_repeats
         # https://stackoverflow.com/questions/12050913/whats-the-unit-of-ru-maxrss-on-linux
@@ -117,6 +124,16 @@ class CommonGP(common.Component):
         metrics_dict['test_type_compute_log_likelihood'] = int(type(log_likelihood) == np.float64)
 
     def test_acc_compute_log_likelihood(self, metrics_dict):
+
+        gt_log_likelihood = self.groundtruth_log_likelihood()
+        log_likelihood = self.compute_log_likelihood()
+        diff_log_likelihood = np.abs(log_likelihood+gt_log_likelihood)
+        logging.info(f'Manual calculation using RBF yields {-gt_log_likelihood}, which log_likelihood differs by {diff_log_likelihood}')
+
+        metrics_dict['test_acc_compute_log_likelihood'] = int(np.isclose(-gt_log_likelihood, log_likelihood))
+        metrics_dict['diff_log_likelihood'] = diff_log_likelihood
+
+    def groundtruth_log_likelihood(self):
         noise_variance = self.kernel_kwargs_original["noise_variance"]
         lengthscale = self.kernel_kwargs_original["lengthscale"]
         scale_variance = self.kernel_kwargs_original["scale_variance"]
@@ -146,10 +163,4 @@ class CommonGP(common.Component):
         r = np.sum(np.log(np.diagonal(L_factors[0]))) + \
                0.5 * Y_train.T @ alpha + \
                0.5 * N * np.log(2*np.pi)
-
-        log_likelihood = self.compute_log_likelihood()
-        diff_log_likelihood = np.abs(log_likelihood+r)
-        logging.info(f'Manual calculation using RBF yields {-r}, which log_likelihood differs by {diff_log_likelihood}')
-
-        metrics_dict['test_acc_compute_log_likelihood'] = int(np.isclose(-r, log_likelihood))
-        metrics_dict['diff_log_likelihood'] = diff_log_likelihood
+        return r

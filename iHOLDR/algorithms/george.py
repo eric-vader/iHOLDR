@@ -22,11 +22,13 @@ class GeorgeGP(CommonGP):
     kernel_kwargs_mapper = {
         'lengthscale':'metric'
     }
-    def __init__(self, solver, kernel, re_rearrange=True, sk_kwargs={}, rearrange_fn='rearrange_placebo', rearrange_kwargs={}, **kwargs):
+    def __init__(self, solver, kernel, re_rearrange=True, model_kwargs={}, sk_kwargs={}, rearrange_fn='rearrange_placebo', rearrange_kwargs={}, **kwargs):
         super().__init__(**kwargs)
 
         self.scale_variance = self.kernel_kwargs.pop('scale_variance')
-        self.yerr = np.sqrt(self.kernel_kwargs.pop('noise_variance')) * np.ones_like(self.train_data.y)
+        noise_variance = self.kernel_kwargs.pop('noise_variance')
+        self.white_noise = np.log(noise_variance)
+        self.yerr = np.sqrt(noise_variance) * np.ones_like(self.train_data.y)
 
         self.Kernel = getattr(george.kernels, kernel)
         self.Solver = getattr(george, solver)
@@ -42,37 +44,38 @@ class GeorgeGP(CommonGP):
         self.KXX_hist = defaultdict(list)
 
         self.re_rearrange = re_rearrange
+        
+        self.model_kwargs = model_kwargs
+
+    def make_model(self):
+        kernel = self.scale_variance * self.Kernel(ndim=self.train_data.D, **self.kernel_kwargs)
+        model = george.GP(kernel,solver=self.Solver, seed=self.random_seed, **self.model_kwargs) # min_size is the size of the leaf matrices , white_noise=self.white_noise, 
+        self.rearrange_fn(model, **self.rearrange_kwargs)
+        # You need to compute the GP once before starting the optimization.
+        model.compute(self.train_data.X, self.yerr)
+        self.model = model # KXX for visualization
+        return model, kernel
 
     def compute_log_likelihood(self):
 
-        kernel = self.scale_variance * self.Kernel(ndim=self.train_data.D, **self.kernel_kwargs)
-        model = george.GP(kernel, solver=self.Solver)
-        self.rearrange_fn(model, **self.rearrange_kwargs)
-
-        model.compute(self.train_data.X, self.yerr)
-        self.model = model # KXX for visualization
-
-        return model.log_likelihood(self.train_data.y)
+        model, _ = self.make_model()
+        return model.log_likelihood(self.train_data.y, quiet=True)
     
     def predict(self, X, perform_opt):
-
-        kernel = self.scale_variance * self.Kernel(ndim=self.train_data.D, **self.kernel_kwargs)
-        model = george.GP(kernel, solver=self.Solver)
-        self.rearrange_fn(model, **self.rearrange_kwargs)
-
-        # You need to compute the GP once before starting the optimization.
-        model.compute(self.train_data.X, self.yerr)
+        model, kernel = self.make_model()
+        
         if perform_opt:
             # https://george.readthedocs.io/en/latest/tutorials/hyper/
             self.optimize_hypers(kernel, model)
             if self.re_rearrange:
                 self.rearrange_fn(model, **self.rearrange_kwargs)
+                model.compute(self.train_data.X, self.yerr)
         kernel_params = tuple(np.exp(kernel.get_parameter_vector()))
 
-        y_predicted, y_predicted_confidence = model.predict(self.train_data.y, X, return_var=False)
+        y_predicted, _ = model.predict(self.train_data.y, X, return_var=False)
         self.model = model # KXX for visualization
 
-        return y_predicted, model.log_likelihood(self.train_data.y), kernel_params
+        return y_predicted, model.log_likelihood(self.train_data.y, quiet=True), kernel_params
     def optimize_hypers(self, kernel, model):
 
         # Define the objective function (negative log-likelihood in this case).
@@ -108,7 +111,7 @@ class GeorgeGP(CommonGP):
 
         pca = PCA(n_components=n_components)
         pca_X = pca.fit_transform(self.train_data.X)
-        n_components = self.choose_n_eigvals(pca.singular_values_**2, n_components)
+        n_components = self.choose_n_eigvals(pca.singular_values_, n_components)
         
         idx = self.recursive_sort(pca_X, n_components)
         self.train_data.rearrange(idx)
@@ -294,3 +297,20 @@ class GeorgeGP(CommonGP):
         for status, KXXs in self.KXX_hist.items():
             for i, KXX in enumerate(KXXs):
                 self.plot_KXX(KXX, f"george/{status}_{i:02}_kXX.png")
+
+    def viz_graph1d(self):
+        # tidx = np.array(list(range(self.test_data.N)))
+        tidx = np.argsort(self.test_data.X.reshape(-1))
+        self.test_data.rearrange(tidx)
+        y_predicted, y_pred_var = model.predict(self.train_data.y, self.test_data.X, return_var=True)
+
+        plt.fill_between(self.test_data.X.reshape(-1), y_predicted - np.sqrt(y_pred_var), y_predicted + np.sqrt(y_pred_var),
+                        color="k", alpha=0.2)
+        plt.plot(self.test_data.X.reshape(-1), y_predicted, "k", lw=1.5, alpha=0.5)
+        plt.errorbar(self.train_data.X.reshape(-1), self.train_data.y, yerr=self.yerr, fmt=".k", capsize=0)
+        plt.plot(self.test_data.X.reshape(-1), np.sin(self.test_data.X.reshape(-1)), "--g")
+        plt.xlim(-10, 10)
+        plt.ylim(-1.45, 1.45)
+        plt.xlabel("x")
+        plt.ylabel("y")
+        plt.show()
