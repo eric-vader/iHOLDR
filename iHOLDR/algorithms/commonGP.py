@@ -16,20 +16,22 @@ class CommonGP(common.Component):
     def __init__(self, datasets, kernel_kwargs, m_repeats, optimizer_kwargs, test_mode=False, **kwargs):
         super().__init__(**kwargs)
         self.rng = np.random.default_rng(self.random_seed)
-        
+
         self.datasets = datasets
         dxs = datasets.generate_data()
         self.train_data, self.test_data, self.data = dxs
-        # Perform any clean GT computation before going on
-        logging.info("Computing gt log likelihood")
-        self.gt_log_likelihood = self.groundtruth_log_likelihood()
-
-        self.train_data, self.test_data, self.data = [ self.adapt_data(d) for d in dxs ]
 
         if kernel_kwargs['scale_variance'] == 'population':
             kernel_kwargs['scale_variance'] = np.var(self.train_data.y)
         self.kernel_kwargs_original = kernel_kwargs.copy()
         self.kernel_kwargs = self.kernel_kwargs_adaptor(kernel_kwargs)
+
+        # Perform any clean GT computation before going on
+        logging.info("Computing gt log likelihood")
+        self.gt_log_likelihood = self.groundtruth_log_likelihood()
+
+        # Now we adapt the data
+        self.train_data, self.test_data, self.data = [ self.adapt_data(d) for d in dxs ]
 
         self.optimizer_kwargs = optimizer_kwargs
 
