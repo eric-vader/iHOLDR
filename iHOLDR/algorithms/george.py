@@ -46,10 +46,12 @@ class GeorgeGP(CommonGP):
         self.re_rearrange = re_rearrange
         
         self.model_kwargs = model_kwargs
+        if solver == "HODLRSolver":
+            self.model_kwargs['seed'] = self.random_seed
 
     def make_model(self):
         kernel = self.scale_variance * self.Kernel(ndim=self.train_data.D, **self.kernel_kwargs)
-        model = george.GP(kernel,solver=self.Solver, seed=self.random_seed, **self.model_kwargs) # min_size is the size of the leaf matrices , white_noise=self.white_noise, 
+        model = george.GP(kernel,solver=self.Solver, **self.model_kwargs) # min_size is the size of the leaf matrices , white_noise=self.white_noise, 
         self.rearrange_fn(model, **self.rearrange_kwargs)
         # You need to compute the GP once before starting the optimization.
         model.compute(self.train_data.X, self.yerr)
