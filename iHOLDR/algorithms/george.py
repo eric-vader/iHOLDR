@@ -111,7 +111,7 @@ class GeorgeGP(CommonGP):
 
     def rearrange_la_pca_sk(self, model, n_components):
 
-        pca = PCA(n_components=n_components)
+        pca = PCA(n_components=n_components, random_state=self.random_seed)
         pca_X = pca.fit_transform(self.train_data.X)
         n_components = self.choose_n_eigvals(pca.singular_values_, n_components)
         
@@ -123,7 +123,7 @@ class GeorgeGP(CommonGP):
         scale_variance, length_scale = np.exp(model.get_parameter_vector())
         kernel = scale_variance * self.Sk_Kernel(length_scale=length_scale)
 
-        pca = KernelPCA(kernel=kernel, n_components=n_components)
+        pca = KernelPCA(kernel=kernel, n_components=n_components, random_state=self.random_seed)
         pca_X = pca.fit_transform(self.train_data.X)
         n_components = self.choose_n_eigvals(pca.eigenvalues_, n_components)
 
@@ -179,7 +179,7 @@ class GeorgeGP(CommonGP):
                 for i2 in idx[i+1:]:
                     G.add_edge(i1, i2, weight=M[i1][i2])
 
-            return list(map(np.array,map(list, nx.algorithms.community.kernighan_lin.kernighan_lin_bisection(G, max_iter=max_iter))))
+            return list(map(np.array,map(list, nx.algorithms.community.kernighan_lin.kernighan_lin_bisection(G, max_iter=max_iter, seed=self.random_seed))))
 
         def sub_divide(idx, k=1):
             a, b = get_sequence(idx)
@@ -222,7 +222,7 @@ class GeorgeGP(CommonGP):
         matrix_N = len(arg_idx)
         matrix_half_N = math.ceil(matrix_N/2)
         def random_indices():
-            return np.array([np.random.randint(matrix_half_N), matrix_half_N + np.random.randint(matrix_N - matrix_half_N)])
+            return np.array([self.rng.integers(matrix_half_N), matrix_half_N + self.rng.integers(matrix_N - matrix_half_N)])
 
         def eval_fitness(idx):
             half_N = int(N/2)
