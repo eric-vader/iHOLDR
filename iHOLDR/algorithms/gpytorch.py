@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import torch
+import random
 import gpytorch
 import gc
 import numpy as np
@@ -130,6 +131,9 @@ class PyTorchGP(CommonGP):
         return model, likelihood
 
     def create_model(self):
+        torch.manual_seed(self.random_seed)
+        random.seed(self.random_seed)
+        np.random.seed(self.random_seed)
         likelihood = gpytorch.likelihoods.GaussianLikelihood().to(self.output_device)
         model = ExactGPModel(self.train_x, self.train_y, likelihood, self.Kernel).to(self.output_device)
         model.initialize(**self.kernel_kwargs)
@@ -211,6 +215,9 @@ class PyTorchAlexanderGP(PyTorchGP):
         return y_predicted, np.float64(opt_log_likelihood), opt_kernel_params
 
     def create_model(self):
+        torch.manual_seed(self.random_seed)
+        random.seed(self.random_seed)
+        np.random.seed(self.random_seed)
         likelihood = gpytorch.likelihoods.GaussianLikelihood().to(self.output_device)
         if str(self.output_device) == "cpu":
             model = ExactGPModel(self.train_x, self.train_y, likelihood, self.Kernel).to(self.output_device)
