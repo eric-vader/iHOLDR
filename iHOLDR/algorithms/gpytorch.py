@@ -132,6 +132,7 @@ class PyTorchGP(CommonGP):
 
     def create_model(self):
         torch.manual_seed(self.random_seed)
+        torch.random.manual_seed(self.random_seed)
         random.seed(self.random_seed)
         np.random.seed(self.random_seed)
         likelihood = gpytorch.likelihoods.GaussianLikelihood().to(self.output_device)
@@ -216,6 +217,7 @@ class PyTorchAlexanderGP(PyTorchGP):
 
     def create_model(self):
         torch.manual_seed(self.random_seed)
+        torch.random.manual_seed(self.random_seed)
         random.seed(self.random_seed)
         np.random.seed(self.random_seed)
         likelihood = gpytorch.likelihoods.GaussianLikelihood().to(self.output_device)

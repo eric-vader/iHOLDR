@@ -44,6 +44,7 @@ class GPyGP(CommonGP):
             ix = self.rng.permutation(self.train_data.N)[:min(num_inducing, self.train_data.N)]
             self.model_kwargs['Z'] = self.train_data.X.view(np.ndarray)[ix].copy()
     def make_model(self):
+        np.random.seed(self.random_seed)
         kernel = self.Kernel(**self.kernel_kwargs)
         model = self.Model(self.train_data.X, self.train_data.y, kernel, **self.model_kwargs)
         model.Gaussian_noise.fix(self.noise_variance)

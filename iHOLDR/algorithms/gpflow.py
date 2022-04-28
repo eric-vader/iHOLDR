@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import gpflow
 import numpy as np
+import tensorflow as tf
 
 from gpflow.utilities import set_trainable
 
@@ -22,6 +23,8 @@ class GPflowGP(CommonGP):
         self.noise_variance = self.kernel_kwargs.pop('noise_variance')
 
     def make_model(self):
+        np.random.seed(self.random_seed)
+        tf.random.set_seed(self.random_seed)
         kernel = self.Kernel(**self.kernel_kwargs)
         model = gpflow.models.GPR(data=(self.train_data.X, self.train_data.y), kernel=kernel, mean_function=None)
         model.likelihood.variance.assign(self.noise_variance)
