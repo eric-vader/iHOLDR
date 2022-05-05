@@ -13,7 +13,7 @@ class CommonGP(common.Component):
     kernel_kwargs_mapper = {}
     def kernel_kwargs_adaptor(self, kernel_kwargs):
         return { (self.kernel_kwargs_mapper[k] if k in self.kernel_kwargs_mapper else k) : v for k,v in kernel_kwargs.items()  }
-    def __init__(self, datasets, kernel_kwargs, m_repeats, optimizer_kwargs, test_mode=False, **kwargs):
+    def __init__(self, datasets, kernel_kwargs, optimizer_kwargs, m_repeats=0, test_mode=False, **kwargs):
         super().__init__(**kwargs)
         self.rng = np.random.default_rng(self.random_seed)
 
@@ -64,34 +64,33 @@ class CommonGP(common.Component):
 
         metrics_dict = {}
 
-        logging.info("Computing log likelihood")
-        
-        total_time_taken_ns = 0
-        for i in range(self.m_repeats):
-            start_time_ns = process_time_ns() 
-            log_likelihood = self.compute_log_likelihood()
-            total_time_taken_ns += process_time_ns()-start_time_ns
-            # Clean-up
-            self.clean_up('compute_log_likelihood')
-        logging.info(f"log_likelihood = {log_likelihood}")
-        
-        gt_log_likelihood = self.gt_log_likelihood
-        abs_err = np.abs(log_likelihood+gt_log_likelihood)
-        rel_err = abs_err/np.abs(gt_log_likelihood)
-        metrics_dict['gt_log_likelihood'] = -gt_log_likelihood
-        metrics_dict['abs_err_ll'] = abs_err
-        metrics_dict['rel_err_ll'] = rel_err
-
-        metrics_dict['time_taken_ns'] = total_time_taken_ns / self.m_repeats
-        # https://stackoverflow.com/questions/12050913/whats-the-unit-of-ru-maxrss-on-linux
-        # maximum resident set size, maxrss kilobytes
-        metrics_dict['ru_maxrss_kb'] = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        if self.m_repeats > 0:
+            logging.info("Measure timing for log-likelihood computation.")
+            total_time_taken_ns = 0
+            for i in range(self.m_repeats):
+                start_time_ns = process_time_ns() 
+                self.compute_log_likelihood()
+                total_time_taken_ns += process_time_ns()-start_time_ns
+                # Clean-up
+                self.clean_up('compute_log_likelihood')
+            
+            metrics_dict['time_taken_ns'] = total_time_taken_ns / self.m_repeats
+            # https://stackoverflow.com/questions/12050913/whats-the-unit-of-ru-maxrss-on-linux
+            # maximum resident set size, maxrss kilobytes
+            metrics_dict['ru_maxrss_kb'] = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         
         logging.info(f"Starting prediction (non-opt) using kernel with kernel_params = (var, ls) = {self.kernel_kwargs_original['scale_variance'], self.kernel_kwargs_original['lengthscale']}")
         y_predicted, log_likelihood, kernel_params = self.predict(self.test_data.X, False)
         rmse = mean_squared_error(self.test_data.y, y_predicted, squared=False)
         logging.info(f"rmse = {rmse}, log_likelihood = {log_likelihood}, kernel_params = (var, ls) = {kernel_params}")
         self.clean_up('prediction')
+
+        gt_log_likelihood = self.gt_log_likelihood
+        abs_err = np.abs(log_likelihood+gt_log_likelihood)
+        rel_err = abs_err/np.abs(gt_log_likelihood)
+        metrics_dict['gt_log_likelihood'] = -gt_log_likelihood
+        metrics_dict['abs_err_ll'] = abs_err
+        metrics_dict['rel_err_ll'] = rel_err
 
         metrics_dict['log_likelihood'] = log_likelihood
         metrics_dict['rmse'] = rmse

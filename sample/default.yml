@@ -1,14 +1,14 @@
 datasets:
-  # Function:
-  #   random_seed: 0
-  #   n_samples: 1000
-  #   n_train_ratio: 0.8
-  #   fn_kwargs:
-  #     fn: 'lambda x:np.sin(x)'
-  #     bounds: [[-10,10]]
-  #   noise_kwargs:
-  #     mean: 0
-  #     variance: 0.01
+  Function:
+    random_seed: 0
+    n_samples: 1000
+    n_train_ratio: 0.8
+    fn_kwargs:
+      fn: 'lambda x:np.sin(x)'
+      bounds: [[-10,10]]
+    noise_kwargs:
+      mean: 0
+      variance: 0.01
 
   # HpolibFunction: # 2D
   #   random_seed: 0
@@ -30,19 +30,19 @@ datasets:
   #     mean: 0
   #     variance: 0.01
 
-  GPFunction:
-    random_seed: 0
-    n_samples: 1000
-    n_train_ratio: 0.8
-    fn_kwargs:
-      bounds: [[0,1], [0,1], [0,1], [0,1], [0,1], [0,1], [0,1]]
-      kernel: RBF
-      kernel_kwargs:
-        lengthscale: 0.1
-        variance: 0.5
-    noise_kwargs:
-      mean: 0
-      variance: 0.01
+  # GPFunction:
+  #   random_seed: 0
+  #   n_samples: 1000
+  #   n_train_ratio: 0.8
+  #   fn_kwargs:
+  #     bounds: [[0,1], [0,1], [0,1], [0,1], [0,1], [0,1], [0,1]]
+  #     kernel: RBF
+  #     kernel_kwargs:
+  #       lengthscale: 0.1
+  #       variance: 0.5
+  #   noise_kwargs:
+  #     mean: 0
+  #     variance: 0.01
       
   # UCIFunction:
   #   is_pre_split: True
@@ -57,20 +57,18 @@ datasets:
 
 algorithms:
 
-  # GPflowGP:
-  #   random_seed: 0
-  #   m_repeats: 1
-  #   kernel: RBF
-  #   kernel_kwargs:
-  #     lengthscale: 1.0
-  #     scale_variance: population
-  #     noise_variance: 0.01
-  #   optimizer_kwargs:
-  #     method: L-BFGS-B
+  GPflowGP:
+    random_seed: 0
+    kernel: RBF
+    kernel_kwargs:
+      lengthscale: 1.0
+      scale_variance: population
+      noise_variance: 0.01
+    optimizer_kwargs:
+      method: L-BFGS-B
 
   # SklearnGP:
   #   random_seed: 0
-  #   m_repeats: 1
   #   kernel: RBF
   #   kernel_kwargs:
   #     lengthscale: 1.0
@@ -81,7 +79,6 @@ algorithms:
 
   # GPyGP:
   #   random_seed: 0
-  #   m_repeats: 1
   #   kernel: RBF
   #   kernel_kwargs:
   #     lengthscale: 1.0
@@ -94,7 +91,6 @@ algorithms:
   # # SGPR
   # GPyGP:
   #   random_seed: 0
-  #   m_repeats: 1
   #   model: SparseGPRegression
   #   model_kwargs:
   #     Z: 512
@@ -110,7 +106,6 @@ algorithms:
   # # SVGP
   # GPyGP:
   #   random_seed: 0
-  #   m_repeats: 1
   #   model: SVGPRegression
   #   model_kwargs:
   #     Z: 1024
@@ -127,7 +122,6 @@ algorithms:
 
   # GeorgeGP:
   #   random_seed: 0
-  #   m_repeats: 1
   #   solver: HODLRSolver
   #   rearrange_fn: rearrange_la_pca
   #   rearrange_kwargs:
@@ -141,10 +135,12 @@ algorithms:
   #     noise_variance: 0.01
   #   optimizer_kwargs:
   #     method: L-BFGS-B
+  #   model_kwargs:
+  #     tol: 0.00001
+  #     min_size: 100
 
   # GeorgeGP:
   #   random_seed: 0
-  #   m_repeats: 1
   #   solver: HODLRSolver
   #   rearrange_fn: rearrange_la_kpca
   #   rearrange_kwargs:
@@ -158,10 +154,12 @@ algorithms:
   #     noise_variance: 0.01
   #   optimizer_kwargs:
   #     method: L-BFGS-B
+  #   model_kwargs:
+  #     tol: 0.00001
+  #     min_size: 100
 
   # GeorgeGP:
   #   random_seed: 0
-  #   m_repeats: 1
   #   solver: HODLRSolver
   #   rearrange_fn: rearrange_graph_kernighan
   #   rearrange_kwargs:
@@ -174,10 +172,12 @@ algorithms:
   #     noise_variance: 0.01
   #   optimizer_kwargs:
   #     method: L-BFGS-B
+  #   model_kwargs:
+  #     tol: 0.00001
+  #     min_size: 100
 
   # GeorgeGP:
   #   random_seed: 0
-  #   m_repeats: 1
   #   solver: HODLRSolver
   #   rearrange_fn: rearrange_kmeans
   #   rearrange_kwargs:
@@ -189,10 +189,12 @@ algorithms:
   #     noise_variance: 0.01
   #   optimizer_kwargs:
   #     method: L-BFGS-B
+  #   model_kwargs:
+  #     tol: 0.00001
+  #     min_size: 100
 
   # GeorgeGP:
   #   random_seed: 0
-  #   m_repeats: 1
   #   solver: HODLRSolver
   #   rearrange_fn: rearrange_kmeans_eq
   #   rearrange_kwargs:
@@ -204,10 +206,12 @@ algorithms:
   #     noise_variance: 0.01
   #   optimizer_kwargs:
   #     method: L-BFGS-B
+  #   model_kwargs:
+  #     tol: 0.00001
+  #     min_size: 100
 
   # GeorgeGP:
   #   random_seed: 0
-  #   m_repeats: 1
   #   solver: HODLRSolver
   #   rearrange_fn: rearrange_ga
   #   rearrange_kwargs:
@@ -220,10 +224,27 @@ algorithms:
   #     noise_variance: 0.01
   #   optimizer_kwargs:
   #     method: L-BFGS-B
+  #   model_kwargs:
+  #     tol: 0.00001
+  #     min_size: 100
 
   # GeorgeGP:
   #   random_seed: 0
-  #   m_repeats: 1
+  #   solver: HODLRSolver
+  #   rearrange_fn: rearrange_placebo
+  #   kernel: ExpSquaredKernel
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.01
+  #   optimizer_kwargs:
+  #     method: L-BFGS-B
+  #   model_kwargs:
+  #     tol: 0.00001
+  #     min_size: 100
+
+  # GeorgeGP:
+  #   random_seed: 0
   #   solver: BasicSolver
   #   kernel: ExpSquaredKernel
   #   kernel_kwargs:
@@ -232,10 +253,10 @@ algorithms:
   #     noise_variance: 0.01
   #   optimizer_kwargs:
   #     method: L-BFGS-B
+  
 
   # PyTorchAlexanderGP:
   #   random_seed: 0
-  #   m_repeats: 1
   #   kernel: RBFKernel
   #   output_device: cuda:0
   #   n_devices: 1
@@ -247,23 +268,21 @@ algorithms:
   #   optimizer_kwargs:
   #     max_iter: 15000
 
-  PyTorchAlexanderGP:
-    random_seed: 0
-    m_repeats: 1
-    kernel: RBFKernel
-    output_device: cpu
-    n_devices: 1
-    preconditioner_size: 100
-    kernel_kwargs:
-      lengthscale: 1.0
-      scale_variance: population
-      noise_variance: 0.01
-    optimizer_kwargs:
-      max_iter: 15000
+  # PyTorchAlexanderGP:
+  #   random_seed: 0
+  #   kernel: RBFKernel
+  #   output_device: cpu
+  #   n_devices: 1
+  #   preconditioner_size: 100
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.01
+  #   optimizer_kwargs:
+  #     max_iter: 15000
 
   # PyTorchGP:
   #   random_seed: 0
-  #   m_repeats: 1
   #   kernel: RBFKernel
   #   output_device: cuda:0
   #   n_devices: 1
@@ -276,7 +295,6 @@ algorithms:
 
   # PyTorchGP:
   #   random_seed: 0
-  #   m_repeats: 1
   #   kernel: RBFKernel
   #   output_device: cpu
   #   n_devices: 1
