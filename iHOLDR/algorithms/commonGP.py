@@ -63,21 +63,31 @@ class CommonGP(common.Component):
             return
 
         metrics_dict = {}
-
+    
         if self.m_repeats > 0:
             logging.info("Measure timing for log-likelihood computation.")
             total_time_taken_ns = 0
+            ru_maxrss_KB_list = []
             for i in range(self.m_repeats):
                 start_time_ns = process_time_ns() 
                 self.compute_log_likelihood()
-                total_time_taken_ns += process_time_ns()-start_time_ns
+                time_taken_ns = process_time_ns()-start_time_ns
+                ru_maxrss_KB = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
                 # Clean-up
-                self.clean_up('compute_log_likelihood')
+                self.clean_up(f'compute_log_likelihood_{i:03}')
+                
+                total_time_taken_ns += time_taken_ns
+                ea_metrics_dict = {
+                    'time_taken_ns': time_taken_ns,
+                    'ru_maxrss_KB': ru_maxrss_KB
+                }
+                self.mlflow_logger.log_metrics(ea_metrics_dict, i)
+                ru_maxrss_KB_list.append(ru_maxrss_KB)
             
-            metrics_dict['time_taken_ns'] = total_time_taken_ns / self.m_repeats
+            metrics_dict['avg_time_taken_ns'] = total_time_taken_ns / self.m_repeats
             # https://stackoverflow.com/questions/12050913/whats-the-unit-of-ru-maxrss-on-linux
             # maximum resident set size, maxrss kilobytes
-            metrics_dict['ru_maxrss_kb'] = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+            metrics_dict['min_ru_maxrss_KB'] = min(ru_maxrss_KB_list)
         
         logging.info(f"Starting prediction (non-opt) using kernel with kernel_params = (var, ls) = {self.kernel_kwargs_original['scale_variance'], self.kernel_kwargs_original['lengthscale']}")
         y_predicted, log_likelihood, kernel_params = self.predict(self.test_data.X, False)

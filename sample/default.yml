@@ -58,6 +58,7 @@ datasets:
 algorithms:
 
   GPflowGP:
+    m_repeats: 100000
     random_seed: 0
     kernel: RBF
     kernel_kwargs:
