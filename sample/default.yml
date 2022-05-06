@@ -57,16 +57,15 @@ datasets:
 
 algorithms:
 
-  GPflowGP:
-    m_repeats: 100000
-    random_seed: 0
-    kernel: RBF
-    kernel_kwargs:
-      lengthscale: 1.0
-      scale_variance: population
-      noise_variance: 0.01
-    optimizer_kwargs:
-      method: L-BFGS-B
+  # GPflowGP:
+  #   random_seed: 0
+  #   kernel: RBF
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.01
+  #   optimizer_kwargs:
+  #     method: L-BFGS-B
 
   # SklearnGP:
   #   random_seed: 0
@@ -229,20 +228,21 @@ algorithms:
   #     tol: 0.00001
   #     min_size: 100
 
-  # GeorgeGP:
-  #   random_seed: 0
-  #   solver: HODLRSolver
-  #   rearrange_fn: rearrange_placebo
-  #   kernel: ExpSquaredKernel
-  #   kernel_kwargs:
-  #     lengthscale: 1.0
-  #     scale_variance: population
-  #     noise_variance: 0.01
-  #   optimizer_kwargs:
-  #     method: L-BFGS-B
-  #   model_kwargs:
-  #     tol: 0.00001
-  #     min_size: 100
+  GeorgeGP:
+    random_seed: 0
+    m_repeats: 100
+    solver: HODLRSolver
+    rearrange_fn: rearrange_placebo
+    kernel: ExpSquaredKernel
+    kernel_kwargs:
+      lengthscale: 1.0
+      scale_variance: population
+      noise_variance: 0.01
+    optimizer_kwargs:
+      method: L-BFGS-B
+    model_kwargs:
+      tol: 0.00001
+      min_size: 100
 
   # GeorgeGP:
   #   random_seed: 0

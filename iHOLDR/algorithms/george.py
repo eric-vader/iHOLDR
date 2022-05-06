@@ -41,7 +41,6 @@ class GeorgeGP(CommonGP):
             self.Sk_Kernel = sk_gp.Kernel
 
         self.train_data_stash = self.train_data.clone()
-        self.KXX_hist = defaultdict(list)
 
         self.re_rearrange = re_rearrange
         
@@ -278,7 +277,8 @@ class GeorgeGP(CommonGP):
         return idx
 
     def clean_up(self, status):
-        self.KXX_hist[status].append(self.model.get_matrix(self.train_data.X))
+        self.plot_KXX(self.model.get_matrix(self.train_data.X), f"george/{status}.png")
+        # Reset train data.
         self.train_data = self.train_data_stash.clone()
 
     def plot_KXX(self, KXX, file_name):
@@ -287,18 +287,15 @@ class GeorgeGP(CommonGP):
         
         caxes = axes.matshow(KXX, interpolation ='nearest')
         figure.colorbar(caxes)
-
         self.mlflow_logger.log_figure(figure, file_name)
+        plt.cla()
+        plt.close(figure)
 
     def visualize(self):
 
         kernel = self.scale_variance * self.Kernel(ndim=self.train_data.D, **self.kernel_kwargs)
         model = george.GP(kernel, solver=self.Solver)
         self.plot_KXX(model.get_matrix(self.train_data.X), "george/kXX.png")
-
-        for status, KXXs in self.KXX_hist.items():
-            for i, KXX in enumerate(KXXs):
-                self.plot_KXX(KXX, f"george/{status}_{i:02}_kXX.png")
 
     def viz_graph1d(self):
         # tidx = np.array(list(range(self.test_data.N)))
