@@ -47,6 +47,7 @@ class GeorgeGP(CommonGP):
         self.model_kwargs = model_kwargs
         if solver == "HODLRSolver":
             self.model_kwargs['seed'] = self.random_seed
+            self.sufficient_resources = self.sufficient_resources_HODLRSolver
 
     def make_model(self):
         kernel = self.scale_variance * self.Kernel(ndim=self.train_data.D, **self.kernel_kwargs)
@@ -56,6 +57,11 @@ class GeorgeGP(CommonGP):
         model.compute(self.train_data.X, self.yerr)
         self.model = model # KXX for visualization
         return model, kernel
+
+    def sufficient_resources_HODLRSolver(self):
+        n_bytes = self.data.X.size * self.train_data.X.itemsize
+        X_MB = int((n_bytes)/(10**6))
+        return X_MB < self.free_MB
 
     def compute_log_likelihood(self):
 
@@ -277,7 +283,10 @@ class GeorgeGP(CommonGP):
         return idx
 
     def clean_up(self, status):
-        self.plot_KXX(self.model.get_matrix(self.train_data.X), f"george/{status}.png")
+        
+        # KXX space needed to compute the matrix, which the method in the super()
+        if super().sufficient_resources():
+            self.plot_KXX(self.model.get_matrix(self.train_data.X), f"george/{status}.png")
         # Reset train data.
         self.train_data = self.train_data_stash.clone()
 
@@ -293,9 +302,12 @@ class GeorgeGP(CommonGP):
 
     def visualize(self):
 
-        kernel = self.scale_variance * self.Kernel(ndim=self.train_data.D, **self.kernel_kwargs)
-        model = george.GP(kernel, solver=self.Solver)
-        self.plot_KXX(model.get_matrix(self.train_data.X), "george/kXX.png")
+        # KXX space needed to compute the matrix, which the method in the super()
+        if super().sufficient_resources():
+
+            kernel = self.scale_variance * self.Kernel(ndim=self.train_data.D, **self.kernel_kwargs)
+            model = george.GP(kernel, solver=self.Solver)
+            self.plot_KXX(model.get_matrix(self.train_data.X), "george/kXX.png")
 
     def viz_graph1d(self):
         # tidx = np.array(list(range(self.test_data.N)))

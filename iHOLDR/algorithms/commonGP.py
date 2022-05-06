@@ -4,6 +4,7 @@ import scipy
 import logging
 from time import process_time_ns
 import resource
+import os
 from sklearn.metrics import mean_squared_error
 
 import common
@@ -20,15 +21,22 @@ class CommonGP(common.Component):
         self.datasets = datasets
         dxs = datasets.generate_data()
         self.train_data, self.test_data, self.data = dxs
+        logging.info(f"Dataset sizes - (Train, Test, Total) = {self.train_data.N, self.test_data.N, self.data.N}.")
 
         if kernel_kwargs['scale_variance'] == 'population':
             kernel_kwargs['scale_variance'] = np.var(self.train_data.y)
         self.kernel_kwargs_original = kernel_kwargs.copy()
         self.kernel_kwargs = self.kernel_kwargs_adaptor(kernel_kwargs)
 
-        # Perform any clean GT computation before going on
-        logging.info("Computing gt log likelihood")
-        self.gt_log_likelihood = self.groundtruth_log_likelihood()
+        self.total_MB, self.used_MB, self.free_MB = map(int, os.popen('free -t -m').readlines()[-1].split()[1:])
+        
+        if CommonGP.sufficient_resources(self):
+            # Perform any clean GT computation before going on
+            logging.info("Computing gt_log_likelihood")
+            self.gt_log_likelihood = self.groundtruth_log_likelihood()
+        else:
+            logging.info("Skipping gt_log_likelihood due to insufficient resources.")
+            self.gt_log_likelihood = 0
 
         # Now we adapt the data
         self.train_data, self.test_data, self.data = [ self.adapt_data(d) for d in dxs ]
@@ -41,6 +49,11 @@ class CommonGP(common.Component):
         self.test_mode = test_mode
 
         self.mlflow_logger = self.config.configs['mlflow_logging']
+
+    def sufficient_resources(self):
+        n_bytes = self.data.X.size * self.train_data.X.itemsize
+        KXX_MB = int((n_bytes**2)/(10**6))
+        return KXX_MB < self.free_MB
 
     def adapt_data(self, data):
         return data
@@ -64,6 +77,10 @@ class CommonGP(common.Component):
 
         metrics_dict = {}
     
+        if not self.sufficient_resources():
+            logging.info("Skipping experiment due to insufficient resources.")
+            return
+
         if self.m_repeats > 0:
             logging.info("Measure timing for log-likelihood computation.")
             total_time_taken_ns = 0
@@ -88,32 +105,32 @@ class CommonGP(common.Component):
             # https://stackoverflow.com/questions/12050913/whats-the-unit-of-ru-maxrss-on-linux
             # maximum resident set size, maxrss kilobytes
             metrics_dict['min_ru_maxrss_KB'] = min(ru_maxrss_KB_list)
-        
-        logging.info(f"Starting prediction (non-opt) using kernel with kernel_params = (var, ls) = {self.kernel_kwargs_original['scale_variance'], self.kernel_kwargs_original['lengthscale']}")
-        y_predicted, log_likelihood, kernel_params = self.predict(self.test_data.X, False)
-        rmse = mean_squared_error(self.test_data.y, y_predicted, squared=False)
-        logging.info(f"rmse = {rmse}, log_likelihood = {log_likelihood}, kernel_params = (var, ls) = {kernel_params}")
-        self.clean_up('prediction')
+        else:
+            logging.info(f"Starting prediction (non-opt) using kernel with kernel_params = (var, ls) = {self.kernel_kwargs_original['scale_variance'], self.kernel_kwargs_original['lengthscale']}")
+            y_predicted, log_likelihood, kernel_params = self.predict(self.test_data.X, False)
+            rmse = mean_squared_error(self.test_data.y, y_predicted, squared=False)
+            logging.info(f"rmse = {rmse}, log_likelihood = {log_likelihood}, kernel_params = (var, ls) = {kernel_params}")
+            self.clean_up('prediction')
 
-        gt_log_likelihood = self.gt_log_likelihood
-        abs_err = np.abs(log_likelihood+gt_log_likelihood)
-        rel_err = abs_err/np.abs(gt_log_likelihood)
-        metrics_dict['gt_log_likelihood'] = -gt_log_likelihood
-        metrics_dict['abs_err_ll'] = abs_err
-        metrics_dict['rel_err_ll'] = rel_err
+            gt_log_likelihood = self.gt_log_likelihood
+            abs_err = np.abs(log_likelihood+gt_log_likelihood)
+            rel_err = abs_err/np.abs(gt_log_likelihood)
+            metrics_dict['gt_log_likelihood'] = -gt_log_likelihood
+            metrics_dict['abs_err_ll'] = abs_err
+            metrics_dict['rel_err_ll'] = rel_err
 
-        metrics_dict['log_likelihood'] = log_likelihood
-        metrics_dict['rmse'] = rmse
+            metrics_dict['log_likelihood'] = log_likelihood
+            metrics_dict['rmse'] = rmse
 
-        logging.info(f"Starting prediction (opt) using kernel with kernel_params = (var, ls) = {self.kernel_kwargs_original['scale_variance'], self.kernel_kwargs_original['lengthscale']}")
-        y_predicted, opt_log_likelihood, opt_kernel_params = self.predict(self.test_data.X, True)
-        opt_rmse = mean_squared_error(self.test_data.y, y_predicted, squared=False)
-        logging.info(f"opt_rmse = {opt_rmse}, opt_log_likelihood = {opt_log_likelihood}, opt_kernel_params = (var, ls) = {opt_kernel_params}")
-        self.clean_up('prediction_opt')
+            logging.info(f"Starting prediction (opt) using kernel with kernel_params = (var, ls) = {self.kernel_kwargs_original['scale_variance'], self.kernel_kwargs_original['lengthscale']}")
+            y_predicted, opt_log_likelihood, opt_kernel_params = self.predict(self.test_data.X, True)
+            opt_rmse = mean_squared_error(self.test_data.y, y_predicted, squared=False)
+            logging.info(f"opt_rmse = {opt_rmse}, opt_log_likelihood = {opt_log_likelihood}, opt_kernel_params = (var, ls) = {opt_kernel_params}")
+            self.clean_up('prediction_opt')
 
-        metrics_dict['opt_log_likelihood'] = opt_log_likelihood
-        metrics_dict['opt_rmse'] = opt_rmse
-        metrics_dict['opt_var'], metrics_dict['opt_ls'] = opt_kernel_params
+            metrics_dict['opt_log_likelihood'] = opt_log_likelihood
+            metrics_dict['opt_rmse'] = opt_rmse
+            metrics_dict['opt_var'], metrics_dict['opt_ls'] = opt_kernel_params
 
         self.mlflow_logger.log_metrics(metrics_dict, None)
         self.visualize()
