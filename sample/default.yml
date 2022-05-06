@@ -59,7 +59,7 @@ algorithms:
 
   GPflowGP:
     random_seed: 0
-    m_repeats: 100
+    m_repeats: 1
     kernel: RBF
     kernel_kwargs:
       lengthscale: 1.0

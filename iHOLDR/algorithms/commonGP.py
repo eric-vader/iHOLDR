@@ -17,6 +17,7 @@ class CommonGP(common.Component):
     def __init__(self, datasets, kernel_kwargs, optimizer_kwargs, m_repeats=0, test_mode=False, **kwargs):
         super().__init__(**kwargs)
         self.rng = np.random.default_rng(self.random_seed)
+        self.mlflow_logger = self.config.configs['mlflow_logging']
 
         self.datasets = datasets
         dxs = datasets.generate_data()
@@ -29,6 +30,11 @@ class CommonGP(common.Component):
         self.kernel_kwargs = self.kernel_kwargs_adaptor(kernel_kwargs)
 
         self.total_MB, self.used_MB, self.free_MB = map(int, os.popen('free -t -m').readlines()[-1].split()[1:])
+        self.mlflow_logger.log_params({
+            "train_N":self.train_data.N, 
+            "test_N":self.test_data.N, 
+            "total_N":self.data.N
+        })
         
         if CommonGP.sufficient_resources(self):
             # Perform any clean GT computation before going on
@@ -48,7 +54,7 @@ class CommonGP(common.Component):
         # Optional parameter for testing
         self.test_mode = test_mode
 
-        self.mlflow_logger = self.config.configs['mlflow_logging']
+        
 
     def sufficient_resources(self):
         n_bytes = self.data.X.size * self.train_data.X.itemsize
