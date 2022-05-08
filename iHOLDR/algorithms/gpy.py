@@ -11,7 +11,7 @@ class SVGPRegression(GPy.core.SVGP):
 
         # kern defaults to rbf (plus white for stability)
         if kernel is None:
-            kernel = kern.RBF(input_dim)#  + kern.white(input_dim, variance=1e-3)
+            kernel = GPy.kern.RBF(input_dim)#  + kern.white(input_dim, variance=1e-3)
 
         likelihood = GPy.likelihoods.Gaussian()
 
@@ -43,6 +43,16 @@ class GPyGP(CommonGP):
             num_inducing = self.model_kwargs['Z']
             ix = self.rng.permutation(self.train_data.N)[:min(num_inducing, self.train_data.N)]
             self.model_kwargs['Z'] = self.train_data.X.view(np.ndarray)[ix].copy()
+        
+        if model != "GPRegression":
+            # Sparse if not GPR, remove the limiter
+            self.sufficient_resources = self.sufficient_resources_Sparse
+
+    def sufficient_resources_Sparse(self):
+        n_bytes = self.data.X.size * self.train_data.X.itemsize
+        X_MB = int((n_bytes)/(10**6))
+        return X_MB < self.free_MB
+
     def make_model(self):
         np.random.seed(self.random_seed)
         kernel = self.Kernel(**self.kernel_kwargs)
