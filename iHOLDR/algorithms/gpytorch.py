@@ -5,6 +5,7 @@ import gpytorch
 import gc
 import numpy as np
 import logging
+import traceback
 
 # Implementation of LBFGS is from git@github.com:hjmshi/PyTorch-LBFGS.git
 from algorithms.LBFGS import FullBatchLBFGS
@@ -252,6 +253,7 @@ class PyTorchAlexanderGP(PyTorchGP):
 
             def closure():
                 optimizer.zero_grad()
+                # Cannot load the entire model?
                 output = model(self.train_x)
                 loss = -mll(output, self.train_y)
                 return loss
@@ -292,7 +294,7 @@ class PyTorchAlexanderGP(PyTorchGP):
         settings = [0] + [int(n) for n in np.ceil(N / 2**np.arange(1, np.floor(np.log2(N))))]
 
         for checkpoint_size in settings:
-            logging.debug('Number of devices: {} -- Kernel partition size: {}'.format(self.n_devices, checkpoint_size))
+            logging.info('Number of devices: {} -- Kernel partition size: {}'.format(self.n_devices, checkpoint_size))
             try:
                 # Try a full forward and backward pass with this setting to check memory usage
                 _, _ = self.train(checkpoint_size=checkpoint_size, max_iter=1)
@@ -301,6 +303,7 @@ class PyTorchAlexanderGP(PyTorchGP):
                 break
             except RuntimeError as e:
                 logging.error('RuntimeError: {}'.format(e))
+                # traceback.print_exc()
             except AttributeError as e:
                 logging.error('AttributeError: {}'.format(e))
             finally:
