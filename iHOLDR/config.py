@@ -98,13 +98,11 @@ class MlflowLogger(ConfigItem):
     def retry_fn(self, func, **kwargs):
         for _ in range(self.retry_count):
             try:
-                result = func(**kwargs)
-                if result: return result
+                return func(**kwargs)
             except self.allowed_exceptions as e:
                 logging.exception("Exception when contacting server:")
                 logging.warning(f"Retrying, waiting for {self.delay} seconds.")
                 time.sleep(self.delay)
-                pass
     def __call__(self, func_name, **kwargs):
         func = getattr(mlflow, func_name)
         self.retry_fn(func, **kwargs)
