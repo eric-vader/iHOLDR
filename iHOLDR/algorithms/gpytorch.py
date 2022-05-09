@@ -180,7 +180,8 @@ class PyTorchAlexanderGP(PyTorchGP):
 
         # Set a large enough preconditioner size to reduce the number of CG iterations run
         self.preconditioner_size = preconditioner_size
-        self.checkpoint_size = self.find_best_partition_setting()
+        if self.sufficient_resources():
+            self.checkpoint_size = self.find_best_partition_setting()
 
     def compute_log_likelihood(self):
 
