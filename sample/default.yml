@@ -53,20 +53,20 @@ datasets:
   #     dataset: protein
   #   noise_kwargs:
   #     mean: 0
-  #     variance: 0.01
+  #     variance: 0.0
 
 algorithms:
 
-  GPflowGP:
-    random_seed: 0
-    m_repeats: 1
-    kernel: RBF
-    kernel_kwargs:
-      lengthscale: 1.0
-      scale_variance: population
-      noise_variance: 0.01
-    optimizer_kwargs:
-      method: L-BFGS-B
+  # GPflowGP:
+  #   random_seed: 0
+  #   m_repeats: 1
+  #   kernel: RBF
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.01
+  #   optimizer_kwargs:
+  #     method: L-BFGS-B
 
   # SklearnGP:
   #   random_seed: 0
@@ -256,18 +256,18 @@ algorithms:
   #     method: L-BFGS-B
   
 
-  # PyTorchAlexanderGP:
-  #   random_seed: 0
-  #   kernel: RBFKernel
-  #   output_device: cuda:0
-  #   n_devices: 1
-  #   preconditioner_size: 100
-  #   kernel_kwargs:
-  #     lengthscale: 1.0
-  #     scale_variance: population
-  #     noise_variance: 0.01
-  #   optimizer_kwargs:
-  #     max_iter: 15000
+  PyTorchAlexanderGP:
+    random_seed: 0
+    kernel: RBFKernel
+    output_device: cuda:0
+    n_devices: 1
+    preconditioner_size: 100
+    kernel_kwargs:
+      lengthscale: 1.0
+      scale_variance: population
+      noise_variance: 0.01
+    optimizer_kwargs:
+      max_iter: 15000
 
   # PyTorchAlexanderGP:
   #   random_seed: 0

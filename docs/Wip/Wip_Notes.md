@@ -25,7 +25,10 @@ $$
 \log{p(\yv|\Xv,\thetav)} = - \frac{1}{2}\yv^{\top}\parens{\Kv+\eta^2\Iv}^{-1}\yv-\frac{1}{2}\log{|\Kv+\eta^2\Iv|}-\frac{n}{2}\log{2\pi}
 $$
 
-For large $n$, the computational cost of inverting $\KXX=\Kv_t+\eta^2\Iv_t$ and finding $|\KXX|$ is expensive; the traditional/direct methods for dense systems scales quadratically. 
+For large $n$, the computational cost of inverting $\KXX=\Kv_t+\eta^2\Iv_t$ and finding $|\KXX|$ is expensive; the traditional/direct methods for dense systems scales quadratically:
+
+* The time complexity is $O(n^3)$.
+* The space complexity is $O(n^2)$, needed to store the lower triangular factor $L$ along with $\KXX$.
 
 Traditionally, Cholesky decomposition is used, factoring the positive-semidefinite matrix $\KXX$ into $L \times L^\top$.
 
@@ -66,6 +69,33 @@ $$
 
 *Note: In the absence of round-off error, it converge to exact solution after $n$ steps.*
 
+### Process
+
+Without forming the kernel matrix directly, using partitioned kernel MVM, 
+
+* Time complexity of $O(n^3)$ ??
+* Space complexity of $O(n)$, assuming $p = n$ partitions.
+
+*Note: Time complexity of the process is not discussed in the paper, which needs more thought.*
+
+#### MVM-based GP inference
+
+#### CG Computation
+
+## Sampling $m$ Inducing points
+
+The 2-most popular methods that use this technique:
+
+1. Sparse and Variational Gaussian Process (SVGP) @hensman2014scalable
+2. Sparse Gaussian Process Regression (SGPR) @titsias2009variational 
+
+### Process
+
+With $m$-inducing points,
+
+* Time complexity of $O(nm^2)$
+* Space complexity of $O(nm)$
+
 ## Fast Direct Methods for Gaussian Processes
 
 **Key Idea**: Assume that $\KXX$ is Hierarchical Off-Diagonal Low-Rank (HODLR) matrix, and can be factored 
@@ -99,6 +129,18 @@ i.e. $\KXX = K_\kappa K_{\kappa-1} \cdots K_{0}$, see below.
 
 ### Process
 
+The overall runtime to obtain the matrix inverse of $\KXX$ and its determinant $|\KXX|$ is $O(n\log^2{n})$:
+
+* The factorization of an $n \times n$, $\kappa$-level (where $\kappa \sim \log n$) HODLR matrix takes $O(n\log^2{n})$.
+* Given a HODLR-type factorization, finding the inverse takes $O(n\log{n})$.
+* Given a HODLR-type factorization, finding the determinant takes $O(n\log{n})$.
+
+The overall space required scales to the number of dense matrices $n/2^{\kappa}\times n/2^{\kappa}$:
+
+* $O(2^{\log{n}} \times \frac{n^2}{4^{\log{n}}}) = O(\frac{n^2}{2^{\log{n}}}) = O(n)$ assuming $\kappa = \log_2{n}$ ??
+
+*Note: Original paper did not discuss space complexity, need to put more thought and experiments; It is also not practical to subdivide completely, the authors implementation subdivide until a certain specified size.*
+
 #### Matrix Inversion.
 
 The summarized process to obtain the inverse (details are in the paper):
@@ -107,8 +149,6 @@ The summarized process to obtain the inverse (details are in the paper):
 1. Using these low-rank approximations to recursively factor the matrix into roughly $O(\log{n})$ pieces.
 1. Sherman-Morrison-Woodbury formula can be applied to the $O(\log{n})$ factors to find the inverse.
 
-The overall runtime to obtain the matrix inverse of $\KXX$ is $O(n\log{n})$.
-
 #### Determinant Computation.
 
 Using the HOLDR factorization, the determinant can be computed directly:
@@ -116,8 +156,6 @@ Using the HOLDR factorization, the determinant can be computed directly:
 $$
 |\KXX|=|K_\kappa| \times |K_{\kappa-1}| \times \cdots \times |K_{0}|
 $$
-
-The determinant can be computed in $O(\kappa n)$.
 
 ## Methods Comparison
 
@@ -459,41 +497,89 @@ $$
 \ell^{(0)} = 23.52 \rightarrow \ell^\text{(La-Pca)} = 31.44, \frac{|\ell^*-\ell^\text{(La-Pca)}|}{\ell^*}=0.308\%
 $$
 
+
+## Kernel Principal Component Analysis
+
+Placeholder
+
 # Difference Sorting
 
 [https://www.youtube.com/watch?v=vE6Ds4jwxb4](https://www.youtube.com/watch?v=vE6Ds4jwxb4)
 
 
-# Citations
+# Experiments
 
-## Code
+## Dataset
 
-### UCI Data
+We used a split the dataset into a training set ($80\%$) and testing set ($20\%$).
 
-Standard Dataset from [https://github.com/treforevans/uci_datasets](https://github.com/treforevans/uci_datasets) @uci_datasets.
-Standard UCI citation @Dua:2019.
+For all synthetic experiments, we add $z_t \sim \mathcal{N}\parens{0, 0.1^2}$ noise to $y_t = f(\xv_t) + z_t$ to simulate real-world noise.
+
+### [Synthetic] Function
+
+We sample from the $1$-Dimensional function $f(x)=\sin(x), \text{ where }x\in [-10,10]$.
+
+### [Synthetic] GP Kernel
+
+Here, we test our algorithm on synthetic data by sampling functions from GP.
+We use an RBF kernel with corresponding dimensional lengthscale and scale parameters set to $\sigma_\text{opt}^2 = 0.5$ and $l_\text{opt}=0.1$.
+
+### [Synthetic] HPOlib2
+
+Commonly used synthetic functions $f(x)$ are from HPOlib2 @eggensperger2013, such as
+
+HPOlib2 | d
+-|-
+Forrester | 1
+Levy | 1
+Bohachevsky | 2
+Branin | 2
+Camelback | 2
+Hartmann6 | 6
+
+### [Real] UCI Data
+
+Curated and processed UCI Dataset @Dua:2019 from [https://github.com/treforevans/uci_datasets](https://github.com/treforevans/uci_datasets) @uci_datasets.
 
 UCI Dataset | Cite | n | d
 -|-|-|-
-PoleTele (pol) | uci_datasets | 15000 | 26
-Elevators | uci_datasets | 16599 | 18
-Bike | uci_datasets | 17379 | 17
-Kin40K | uci_datasets | 40000 | 8
-Protein | uci_datasets | 45730 | 9
-KeggDirected | uci_datasets | 48827 | 20
-CTslice (slice) | uci_datasets | 53500 | 385
-KEGGU (keggundirected) | uci_datasets | 63608 | 27
-3DRoad | uci_datasets | 434874 | 3
-Song | @Bertin-Mahieux2011 | 515345 | 90
-Buzz | uci_datasets | 583250 | 77
-HouseElectric | uci_datasets | 2049280 | 11
+3droad | @6569130 | 434874 | 3
+kin40k |  | 40000 | 8
+protein | @nr | 45730 | 9
+houseelectric |  | 2049280 | 11
+bike |  | 17379 | 17
+elevators |  | 16599 | 18
+keggdirected | @shannon2003cytoscape | 48827 | 20
+pol |  | 15000 | 26
+keggundirected | @shannon2003cytoscape | 63608 | 27
+buzz | @Kawala2013PrdictionsDD | 583250 | 77
+song | @Bertin-Mahieux2011 | 515345 | 90
+slice | @graf20112d | 53500 | 385
 
-### Methods
+## Methods
 
-Stochastic Methods. Here we optimize the model parameters using the Adam Optimizer @DBLP:journals/corr/KingmaB14 which is designed for stochastic objective functions. 
-We use the implementation of Adam from @climin.
+All methods use the RBF kernel with $\sigma_\text{0}^2$ set to the population variance of the training sample and $l_\text{0}=1.0$.
+The model's noise variance is set $\eta^2=0.01$ to account for noisy observations.
 
-1. Sparse and Variational Gaussian Process (SVGP) @hensman2014scalable
-2. Sparse Gaussian Process Regression (SGPR) @titsias2009variational 
+* Stochastic Methods. Here we optimize the model parameters using the Adam Optimizer @DBLP:journals/corr/KingmaB14 which is designed for stochastic objective functions. We use the implementation of Adam from @climin.
+    * *SVGP*, implementation from @gpy2014 
+    * *SGPR*, implementation from @gpy2014
+* Traditional, cholesky decomposition methods
+    * *GPy* - popular GP implementation from Sheffield University @gpy2014
+    * *Sk* - scikit-learn implementation @scikit-learn
+    * *George* - Cholesky implementation inside 'Fast Direct Methods for Gaussian Processes' @george
+    * *GPf* - scikit-learn implementation @GPflow2017
+    * *GPyT* - GPyTorch implementation @gardner2018gpytorch
+* Conjugate gradients method (CG)
+    * *Alex* - Author's implementation for 'Exact Gaussian Processes on a Million Data Points' @NEURIPS2019_01ce8496
+* Hierarchical Off-Diagonal Low-Rank (HODLR) matrix factorization method
+    * *Holdr* - Author's implementation for 'Fast Direct Methods for Gaussian Processes' @7130620
+* Our methods:
+    * *H_KM* - Holdr with K-Means
+    * *H_KM* - Holdr with K-Means with equal sized clusters
+    * *H_GA* - Holdr with Genetic Algorithm
+    * *H_PCA* - Holdr with PCA
+    * *H_KPCA* - Holdr with KPCA
+    * *H_Grf* - Holdr with Kernighan-Lin Graph Bisection
 
 # References

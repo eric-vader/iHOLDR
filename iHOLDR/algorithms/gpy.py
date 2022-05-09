@@ -40,8 +40,8 @@ class GPyGP(CommonGP):
         self.Model = getattr(GPy.models, model)
         self.model_kwargs = model_kwargs
         if 'Z' in self.model_kwargs:
-            num_inducing = self.model_kwargs['Z']
-            ix = self.rng.permutation(self.train_data.N)[:min(num_inducing, self.train_data.N)]
+            self.num_inducing = min(self.model_kwargs['Z'], self.train_data.N)
+            ix = self.rng.permutation(self.train_data.N)[:self.num_inducing]
             self.model_kwargs['Z'] = self.train_data.X.view(np.ndarray)[ix].copy()
         
         if model != "GPRegression":
@@ -49,7 +49,8 @@ class GPyGP(CommonGP):
             self.sufficient_resources = self.sufficient_resources_Sparse
 
     def sufficient_resources_Sparse(self):
-        n_bytes = self.data.X.size * self.train_data.X.itemsize
+        # O(nm)
+        n_bytes = self.data.X.size * self.num_inducing * self.train_data.X.itemsize
         X_MB = int((n_bytes)/(10**6))
         return X_MB < self.free_MB
 
