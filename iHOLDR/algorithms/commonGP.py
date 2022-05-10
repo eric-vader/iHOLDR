@@ -54,8 +54,6 @@ class CommonGP(common.Component):
         # Optional parameter for testing
         self.test_mode = test_mode
 
-        
-
     def sufficient_resources(self):
         n_bytes = self.data.X.size * self.train_data.X.itemsize
         KXX_MB = int((n_bytes**2)/(10**6))
@@ -119,11 +117,11 @@ class CommonGP(common.Component):
             self.clean_up('prediction')
 
             gt_log_likelihood = self.gt_log_likelihood
-            abs_err = np.abs(log_likelihood+gt_log_likelihood)
-            rel_err = abs_err/np.abs(gt_log_likelihood)
+            # abs_err = np.abs(log_likelihood+gt_log_likelihood)
+            # rel_err = abs_err/np.abs(gt_log_likelihood)
             metrics_dict['gt_log_likelihood'] = -gt_log_likelihood
-            metrics_dict['abs_err_ll'] = abs_err
-            metrics_dict['rel_err_ll'] = rel_err
+            # metrics_dict['abs_err_ll'] = abs_err
+            # metrics_dict['rel_err_ll'] = rel_err
 
             metrics_dict['log_likelihood'] = log_likelihood
             metrics_dict['rmse'] = rmse

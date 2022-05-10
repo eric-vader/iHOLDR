@@ -18,7 +18,7 @@ class ExactGPModel(gpytorch.models.ExactGP):
         self.covar_module = gpytorch.kernels.ScaleKernel(Kernel())
     def forward(self, x):
         mean_x = self.mean_module(x)
-        covar_x = self.covar_module(x).add_jitter(1e-6)
+        covar_x = self.covar_module(x)
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
     def get_lengthscale(self):
         return self.covar_module.base_kernel.lengthscale
@@ -33,11 +33,12 @@ class PyTorchGP(CommonGP):
         'noise_variance':'likelihood.noise_covar.noise',
         'scale_variance':'covar_module.outputscale'
     }
-    def __init__(self, output_device, kernel, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, output_device, kernel, kernel_kwargs, **kwargs):
+        kernel_kwargs['noise_variance'] += 1e-6
+        super().__init__(kernel_kwargs=kernel_kwargs, **kwargs)
         self.output_device = torch.device(output_device)
-        self.train_x = torch.from_numpy(self.train_data.X).to(self.output_device)
-        self.train_y = torch.from_numpy(self.train_data.y).to(self.output_device)
+        self.train_x = torch.from_numpy(self.train_data.X.astype(np.float32)).contiguous().to(self.output_device)
+        self.train_y = torch.from_numpy(self.train_data.y.astype(np.float32)).contiguous().to(self.output_device)
         self.Kernel = getattr(gpytorch.kernels, kernel)
     def compute_log_likelihood(self):
         model, _ = self.create_model()
@@ -62,7 +63,7 @@ class PyTorchGP(CommonGP):
         # Test points are regularly spaced along [0,1]
         # Make predictions by feeding model through likelihood
         with torch.no_grad(), gpytorch.settings.fast_pred_var():
-            y_predicted_latent = model(torch.from_numpy(X).to(self.output_device))
+            y_predicted_latent = model(torch.from_numpy(X.astype(np.float32)).contiguous().to(self.output_device))
             y_predicted = y_predicted_latent.mean.cpu().numpy()
 
             opt_kernel_params = np.float64(model.get_outputscale().cpu().numpy()), np.float64(model.get_lengthscale().cpu().numpy())
@@ -151,10 +152,9 @@ class ExactAlexanderGPModel(gpytorch.models.ExactGP):
             base_covar_module, device_ids=range(n_devices),
             output_device=output_device
         )
-
     def forward(self, x):
         mean_x = self.mean_module(x)
-        covar_x = self.covar_module(x).add_jitter(1e-6)
+        covar_x = self.covar_module(x)
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
     def get_lengthscale(self):
         return self.covar_module.module.base_kernel.lengthscale
@@ -170,10 +170,12 @@ class PyTorchAlexanderGP(PyTorchGP):
         'noise_variance':'likelihood.noise_covar.noise',
         'scale_variance':'covar_module.module.outputscale'
     }
-    def __init__(self, output_device, preconditioner_size, n_devices, **kwargs):
+    def __init__(self, output_device, preconditioner_size, n_devices, test_checkpoint_size=1000, **kwargs):
         if output_device == "cpu":
             PyTorchAlexanderGP.kernel_kwargs_mapper = PyTorchGP.kernel_kwargs_mapper
-
+        else:
+            self.sufficient_resources = self.sufficient_resources_gpu
+            
         super().__init__(output_device=output_device, **kwargs)
 
         self.n_devices = n_devices
@@ -181,25 +183,32 @@ class PyTorchAlexanderGP(PyTorchGP):
         # Set a large enough preconditioner size to reduce the number of CG iterations run
         self.preconditioner_size = preconditioner_size
         if self.sufficient_resources():
-            self.checkpoint_size = self.find_best_partition_setting()
+            self.train_checkpoint_size = self.find_best_partition_setting()
+            logging.info(f"Found best train_checkpoint_size to be {self.train_checkpoint_size}")
+            self.test_checkpoint_size = test_checkpoint_size
+
+    def sufficient_resources_gpu(self):
+        n_bytes = self.data.X.size * self.train_data.X.itemsize
+        X_MB = int((n_bytes)/(10**6))
+        return X_MB < self.free_MB
 
     def compute_log_likelihood(self):
 
         model, _ = self.create_model()
 
         # gpytorch.settings.fast_pred_var(), 
-        with torch.no_grad(), gpytorch.beta_features.checkpoint_kernel(self.checkpoint_size), \
+        with torch.no_grad(), gpytorch.beta_features.checkpoint_kernel(self.train_checkpoint_size), \
             gpytorch.settings.max_preconditioner_size(self.preconditioner_size), gpytorch.settings.fast_computations(log_prob=True):
 
             log_likelihood = model.likelihood(model(self.train_x)).log_prob(self.train_y).cpu().numpy()
             return np.float64(log_likelihood)
     def predict(self, X, perform_opt):
         if perform_opt:
-            model, likelihood = self.train(checkpoint_size=self.checkpoint_size, **self.optimizer_kwargs)
+            model, likelihood = self.train(checkpoint_size=self.train_checkpoint_size, **self.optimizer_kwargs)
         else:
             model, likelihood = self.create_model()
 
-        with torch.no_grad(), gpytorch.beta_features.checkpoint_kernel(self.checkpoint_size), \
+        with torch.no_grad(), gpytorch.beta_features.checkpoint_kernel(self.train_checkpoint_size), \
             gpytorch.settings.max_preconditioner_size(self.preconditioner_size), gpytorch.settings.fast_computations(log_prob=True):
 
             opt_log_likelihood = model.likelihood(model(self.train_x)).log_prob(self.train_y).cpu().numpy()
@@ -207,10 +216,11 @@ class PyTorchAlexanderGP(PyTorchGP):
         model.eval()
         likelihood.eval()
 
-        with torch.no_grad(), gpytorch.beta_features.checkpoint_kernel(self.checkpoint_size), \
+        with torch.no_grad(), gpytorch.beta_features.checkpoint_kernel(self.test_checkpoint_size), \
             gpytorch.settings.max_preconditioner_size(self.preconditioner_size), gpytorch.settings.fast_computations(log_prob=True):
             
-            y_predicted_latent = model(torch.from_numpy(X).to(self.output_device))
+            X_torch = torch.from_numpy(X.astype(np.float32)).contiguous().to(self.output_device)
+            y_predicted_latent = model(X_torch)
             y_predicted = y_predicted_latent.mean.cpu().numpy()
 
             opt_kernel_params = np.float64(model.get_outputscale().cpu().numpy()), np.float64(model.get_lengthscale().cpu().numpy())
@@ -247,7 +257,6 @@ class PyTorchAlexanderGP(PyTorchGP):
         optimizer = FullBatchLBFGS(parameters, **optimizer_kwargs)
         # "Loss" for GPs - the marginal log likelihood
         mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model)
-
 
         with gpytorch.beta_features.checkpoint_kernel(checkpoint_size), \
             gpytorch.settings.max_preconditioner_size(self.preconditioner_size):
@@ -295,20 +304,38 @@ class PyTorchAlexanderGP(PyTorchGP):
         settings = [0] + [int(n) for n in np.ceil(N / 2**np.arange(1, np.floor(np.log2(N))))]
 
         for checkpoint_size in settings:
-            logging.info('Number of devices: {} -- Kernel partition size: {}'.format(self.n_devices, checkpoint_size))
-            try:
-                # Try a full forward and backward pass with this setting to check memory usage
-                _, _ = self.train(checkpoint_size=checkpoint_size, max_iter=1)
+            if checkpoint_size == 0:
+                N_part = 1
+            else:
+                N_part = N/checkpoint_size
 
-                # when successful, break out of for-loop and jump to finally block
-                break
-            except RuntimeError as e:
-                logging.error('RuntimeError: {}'.format(e))
-                # traceback.print_exc()
-            except AttributeError as e:
-                logging.error('AttributeError: {}'.format(e))
-            finally:
-                # handle CUDA OOM error
-                gc.collect()
-                torch.cuda.empty_cache()
+            needed_mem_bytes = (N**2 / N_part) * 32 / (8)
+            needed_mem_MB = needed_mem_bytes / (10**6)
+            needed_mem_GiB = needed_mem_bytes / (1024**3)
+
+            logging.info('Number of devices: {} \tKernel partition size: {} \tN_Parts: {} \tNeeded memory: {} GiB'.format(self.n_devices, checkpoint_size, N_part, needed_mem_GiB))
+
+            if str(self.output_device) == "cpu":            
+                if self.free_MB > needed_mem_MB:
+                    break
+
+            else:
+                free_bytes, _ = torch.cuda.mem_get_info(self.output_device)
+                if free_bytes < needed_mem_bytes:
+                    continue
+                
+                try:
+                    # Try a full forward and backward pass with this setting to check memory usage
+                    _, _ = self.train(checkpoint_size=checkpoint_size, max_iter=1)
+
+                    # when successful, break out of for-loop and jump to finally block
+                    break
+                except RuntimeError as e:
+                    logging.error('RuntimeError: {}'.format(e))
+                except AttributeError as e:
+                    logging.error('AttributeError: {}'.format(e))
+                finally:
+                    # handle CUDA OOM error
+                    gc.collect()
+                    torch.cuda.empty_cache()
         return checkpoint_size

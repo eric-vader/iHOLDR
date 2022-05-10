@@ -256,23 +256,10 @@ algorithms:
   #     method: L-BFGS-B
   
 
-  PyTorchAlexanderGP:
-    random_seed: 0
-    kernel: RBFKernel
-    output_device: cuda:0
-    n_devices: 1
-    preconditioner_size: 100
-    kernel_kwargs:
-      lengthscale: 1.0
-      scale_variance: population
-      noise_variance: 0.01
-    optimizer_kwargs:
-      max_iter: 15000
-
   # PyTorchAlexanderGP:
   #   random_seed: 0
   #   kernel: RBFKernel
-  #   output_device: cpu
+  #   output_device: cuda:0
   #   n_devices: 1
   #   preconditioner_size: 100
   #   kernel_kwargs:
@@ -281,6 +268,19 @@ algorithms:
   #     noise_variance: 0.01
   #   optimizer_kwargs:
   #     max_iter: 15000
+
+  PyTorchAlexanderGP:
+    random_seed: 0
+    kernel: RBFKernel
+    output_device: cpu
+    n_devices: 1
+    preconditioner_size: 100
+    kernel_kwargs:
+      lengthscale: 1.0
+      scale_variance: population
+      noise_variance: 0.01
+    optimizer_kwargs:
+      max_iter: 15000
 
   # PyTorchGP:
   #   random_seed: 0
