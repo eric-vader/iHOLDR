@@ -85,6 +85,9 @@ class GeorgeGP(CommonGP):
         return y_predicted, model.log_likelihood(self.train_data.y, quiet=True), kernel_params
     def optimize_hypers(self, kernel, model):
 
+        # we need to implement batched LBFGS
+        # https://docs.ray.io/en/latest/ray-core/examples/plot_lbfgs.html
+
         # Define the objective function (negative log-likelihood in this case).
         def nll(p):
             model.set_parameter_vector(p)
