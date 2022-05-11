@@ -121,7 +121,7 @@ $$
 $$
 
 and that $\MP{U}{i}{j},\MP{V}{i}{j}$ are $\frac{n}{2^j}\times r$ matrices.
-We note that the off-diagonal matrices are low-rank matrices and can be approximated by $\MP{U}{i}{j},\MP{V}{i}{j}$ up to a certain accuracy.
+We note that the off-diagonal matrices are low-rank matrices and can be approximated by $\MP{U}{i}{j},\MP{V}{i}{j}$ up to a factorization precision $\epsilon$.
 The decompositions can be performed recursively up to the $\kappa$-level where $\kappa \sim \log{n}$;
 i.e. $\KXX = K_\kappa K_{\kappa-1} \cdots K_{0}$, see below.
 
@@ -157,45 +157,6 @@ $$
 |\KXX|=|K_\kappa| \times |K_{\kappa-1}| \times \cdots \times |K_{0}|
 $$
 
-## Methods Comparison
-
-The current state-of-the art for fast GP Regression on large $n$ is using CG. Here, we perform an experiment to compare the speed for which each of the methods:
-
-1. Cholesky decomposition
-    * `GPy` Implementation in [GPy](https://github.com/SheffieldML/GPy)
-    * `sklearn` Implementation in [Scikit-Learn](https://scikit-learn.org/)
-    * `basic` Cholesky implementation in [George](https://george.readthedocs.io/en/latest/)
-1. Hierarchical Off-Diagonal Low-Rank (HODLR) matrix factorization
-    * `HOLDR` Implementation in [George](https://george.readthedocs.io/en/latest/)
-1. Conjugate gradients method (CG)
-    * `CG-CPU` Implementation in [GPyTorch](https://gpytorch.ai/) via CPU.
-    * `CG-GPU` Implementation in [GPyTorch](https://gpytorch.ai/) via GPU.
-
-![Comparing HOLDR vs CG on a 1D synthetic function.](results.pdf){width=50%}
-
-### Advantage
-
-The major advantage of `HODLR` when compared to other methods is that it is very fast (also on scaling), even when compared to CG via the GPU. 
-
-### Disadvantage
-
-At first glance, there seems to be no issue with `HODLR`. 
-
-However, from [Inconsistent results with HODLRSolver](https://github.com/dfm/george/issues/128), we see that there are performace issues in its use. 
-Following their example, we can construct a similar example to illustrate the poor accuracy in the computation of log likelihood $\ell$; 
-we setup the synthetic function $y=\sin(x)$ with 200 data points. 
-We let the accurate log likelihood of the $X$ to be $\ell^*$, computed using Cholesky decomposition. We compute the log likelihood $\ell_\text{HODLR}$ using the HODLR matrix factorization without tweaking any defaults.
-
-$$
-\ell^* = 31.344534039948236,\;\;\; \ell_\text{HODLR}=23.518503030261652
-$$
-
-The relative difference would compute to be $\frac{|\ell^*-\ell_\text{HODLR}|}{\ell^*}=24.97\%$.
-
-This issue was discussed in passing in the paper, see below; The authors concluded that it is not an issue and presented a suggestion to use kd-tree sort to condition the matrix $\KXX$. However, the authors reversed this viewpoint in [Issue 128](https://github.com/dfm/george/issues/128).
-
-> We note that the authors claimed that when the data points at which the kernel to be evaluated at are not approximately uniformly distributed, the performance of the factorization may suffer, but only slightly. A higher level of compression could be obtained in the off-diagonal blocks if the hierarchical tree structure is constructed based on spatial considerations instead of point count, as is the case with some kd-tree implementations.
-
 ## Metrics Used
 
 In this section, we review the various metrics used by the various papers, in a attempt to find the best for us:
@@ -213,13 +174,69 @@ In this section, we review the various metrics used by the various papers, in a 
     1. Accuracy - Difference of the Root-Mean-Square Errors of the exact method vs HOLDR on a synthetic function $\sin(2x)+\frac{1}{8}{\rm e}^x+\epsilon$.
     1. Compute Time - Assembly Time, Factor Time, Solve Time and Determinant Compute Time.
     
-
 ## Some thoughts
 
 1. RMSE on test set must be used for accuracy comparison.
 1. We can test synthetic accuracy using $Cx = b$.
 1. We need to get a notion of the computational relative floating point error for the operations that we care about.
 1. What is there a theoretical error that we can achieve?
+
+\newpage
+
+# Motivation
+
+Our key motivations for improving *Holdr* is as follows:
+
+1. *Holdr* is fast; The runtime complexity is very good when compared to the next state-of-the-art.
+1. *Holdr* is space efficient; The space complexity is very good when compared to the next state-of-the-art.
+1. *Holdr* is not accurate; it relies on the assumption that $\KXX$ resembles a HODLR matrix; failing which, the accuracy of the matrix inversion and determininant computations is affected in unpredictable ways. The accuracy of the computation improved by setting the factorization precision $\epsilon$ to a smaller number, but the computation can still fail unpredictably.
+1. $\KXX$ can be conditioned into an equlivant hierarchical matrix $\KXXp$ by performing some reordering operations on $X\rightarrow X'$, improving the matrix structure.
+
+Experiments here are done on the Synthetic Function, $\sin(x)$.
+
+## *Holdr* is fast
+
+The main advantage of *Holdr* when compared to other methods is that it is very fast (also on scaling).
+Even with a small $\epsilon = 0.000001$, *Holdr* is competitive on time.
+
+![Take taken, *Holdr* with $\epsilon=0.000001$ when compared with other methods.](export/fn-sin-perf/ParamMetric/time_taken_ns-ParamMetric-time_taken_ns.pdf){width=50%}
+
+*Note: Some issues with GPyT and Alex, Alex here is using CPU.*
+
+## *Holdr* is space efficient
+
+The next key advantage of *Holdr* when compared to other methods is that it is very space efficient (also on scaling). Placeholder, incomplete.
+
+![Memory used by the computation, *Holdr* with $\epsilon=0.000001$ when compared with other methods.](export/fn-sin-perf/ParamMetric/ru_maxrss_KB-ParamMetric-ru_maxrss_KB.pdf){width=50%}
+
+*Note: Some issues with the chart and experiments, which will be fixed; trust only the last datapoint.*
+
+## *Holdr* is not accurate
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=.32\textwidth]{export/holdr-acc/BoxPlot/rel_err_ll-BoxPlot-rel_err_ll.pdf}
+    \includegraphics[width=.32\textwidth]{export/holdr-acc/BoxPlot/rmse-BoxPlot-rmse.pdf}
+    \includegraphics[width=.32\textwidth]{export/holdr-acc/BoxPlot/opt_rmse-BoxPlot-opt_rmse.pdf}
+\caption{Placeholder.}
+\end{figure}
+
+From [Inconsistent results with HODLRSolver](https://github.com/dfm/george/issues/128), we see that there are accuracy issues in its use. 
+Following their example, we can construct a similar example to illustrate the poor accuracy in the computation of log likelihood $\ell$; 
+we setup the synthetic function $y=\sin(x)$ with 200 data points. 
+We let the accurate log likelihood of the $X$ to be $\ell^*$, computed using Cholesky decomposition. We compute the log likelihood $\ell_\text{HODLR}$ using the HODLR matrix factorization without tweaking any defaults.
+
+$$
+\ell^* = 31.344534039948236,\;\;\; \ell_\text{HODLR}=23.518503030261652
+$$
+
+The relative difference would compute to be $\frac{|\ell^*-\ell_\text{HODLR}|}{\ell^*}=24.97\%$.
+
+This issue was discussed in passing in the paper, see below; The authors concluded that it is not an issue and presented a suggestion to use kd-tree sort to condition the matrix $\KXX$. However, the authors reversed this viewpoint in [Issue 128](https://github.com/dfm/george/issues/128).
+
+> We note that the authors claimed that when the data points at which the kernel to be evaluated at are not approximately uniformly distributed, the performance of the factorization may suffer, but only slightly. A higher level of compression could be obtained in the off-diagonal blocks if the hierarchical tree structure is constructed based on spatial considerations instead of point count, as is the case with some kd-tree implementations.
+
+\newpage 
 
 # Proof of Concept
 
