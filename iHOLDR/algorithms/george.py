@@ -22,7 +22,7 @@ class GeorgeGP(CommonGP):
     kernel_kwargs_mapper = {
         'lengthscale':'metric'
     }
-    def __init__(self, solver, kernel, re_rearrange=True, model_kwargs={}, sk_kwargs={}, rearrange_fn='rearrange_placebo', rearrange_kwargs={}, **kwargs):
+    def __init__(self, solver, kernel, re_rearrange=True, model_kwargs={}, sk_kwargs={}, rearrange_fn='rearrange_placebo', rearrange_kwargs={}, is_plot_KXX=True, **kwargs):
         super().__init__(**kwargs)
 
         self.scale_variance = self.kernel_kwargs.pop('scale_variance')
@@ -48,6 +48,8 @@ class GeorgeGP(CommonGP):
         if solver == "HODLRSolver":
             self.model_kwargs['seed'] = self.random_seed
             self.sufficient_resources = self.sufficient_resources_HODLRSolver
+
+        self.is_plot_KXX = is_plot_KXX
 
     def make_model(self):
         kernel = self.scale_variance * self.Kernel(ndim=self.train_data.D, **self.kernel_kwargs)
@@ -288,7 +290,7 @@ class GeorgeGP(CommonGP):
     def clean_up(self, status):
         
         # KXX space needed to compute the matrix, which the method in the super()
-        if super().sufficient_resources():
+        if super().sufficient_resources() and self.is_plot_KXX:
             self.plot_KXX(self.model.get_matrix(self.train_data.X), f"george/{status}.png")
         # Reset train data.
         self.train_data = self.train_data_stash.clone()
@@ -306,8 +308,7 @@ class GeorgeGP(CommonGP):
     def visualize(self):
 
         # KXX space needed to compute the matrix, which the method in the super()
-        if super().sufficient_resources():
-
+        if super().sufficient_resources() and self.is_plot_KXX:
             kernel = self.scale_variance * self.Kernel(ndim=self.train_data.D, **self.kernel_kwargs)
             model = george.GP(kernel, solver=self.Solver)
             self.plot_KXX(model.get_matrix(self.train_data.X), "george/kXX.png")
