@@ -190,7 +190,7 @@ Our key motivations for improving *Holdr* is as follows:
 1. *Holdr* is fast; The runtime complexity is very good when compared to the next state-of-the-art.
 1. *Holdr* is space efficient; The space complexity is very good when compared to the next state-of-the-art.
 1. *Holdr* is not accurate; it relies on the assumption that $\KXX$ resembles a HODLR matrix; failing which, the accuracy of the matrix inversion and determininant computations is affected in unpredictable ways. The accuracy of the computation improved by setting the factorization precision $\epsilon$ to a smaller number, but the computation can still fail unpredictably.
-1. $\KXX$ can be conditioned into an equlivant hierarchical matrix $\KXXp$ by performing some reordering operations on $X\rightarrow X'$, improving the matrix structure.
+1. $\KXX$ can be conditioned, into an equlivant hierarchical matrix $\KXXp$ by performing some reordering operations on $X\rightarrow X'$, improving the matrix structure.
 
 Experiments here are done on the Synthetic Function, $\sin(x)$.
 
@@ -213,28 +213,50 @@ The next key advantage of *Holdr* when compared to other methods is that it is v
 
 ## *Holdr* is not accurate
 
-\begin{figure}[!h]
-    \centering
-    \includegraphics[width=.32\textwidth]{export/holdr-acc/BoxPlot/rel_err_ll-BoxPlot-rel_err_ll.pdf}
-    \includegraphics[width=.32\textwidth]{export/holdr-acc/BoxPlot/rmse-BoxPlot-rmse.pdf}
-    \includegraphics[width=.32\textwidth]{export/holdr-acc/BoxPlot/opt_rmse-BoxPlot-opt_rmse.pdf}
-\caption{Placeholder.}
+From [Inconsistent results with HODLRSolver](https://github.com/dfm/george/issues/128), we see that there are accuracy issues in its use. 
+The accuracy of the computation improved by setting the factorization precision $\epsilon$ to a smaller number, but the computation can still fail unpredictably.
+
+We can run *Holdr* with different factorization precisions $\epsilon\in\{1e^{-i} : i \in [1,6]\}$ to determine its effects on accuracy and runtime complexity.
+We let the accurate log likelihood of the $X$ to be $\ell^*$, computed using Cholesky decomposition. 
+We compute the log likelihood $\ell_\text{HODLR}$ using the HODLR matrix factorization with the various $\epsilon$.
+
+\begin{figure}
+     \centering
+     \begin{subfigure}[b]{0.32\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{export/holdr-acc/BoxPlot/rel_err_ll-BoxPlot-rel_err_ll.pdf}
+         \caption{Effects on $\frac{|\ell^*-\ell_\text{HODLR}|}{\ell^*}$.}
+         \label{fig:holdr_rel_err_logl}
+     \end{subfigure}
+     \hfill
+     \begin{subfigure}[b]{0.32\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{export/holdr-acc/BoxPlot/rmse-BoxPlot-rmse.pdf}
+         \caption{Effects on RMSE.}
+         \label{fig:holdr_rmse}
+     \end{subfigure}
+     \hfill
+     \begin{subfigure}[b]{0.32\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{export/holdr-perf/BoxPlot/time_taken_ns-BoxPlot-time_taken_ns.pdf}
+         \caption{Effects on Time Taken.}
+         \label{fig:holdr_time}
+     \end{subfigure}
+    \caption{Holdr with different factorization precisions.}
+    \label{fig:three graphs}
 \end{figure}
 
-From [Inconsistent results with HODLRSolver](https://github.com/dfm/george/issues/128), we see that there are accuracy issues in its use. 
-Following their example, we can construct a similar example to illustrate the poor accuracy in the computation of log likelihood $\ell$; 
-we setup the synthetic function $y=\sin(x)$ with 200 data points. 
-We let the accurate log likelihood of the $X$ to be $\ell^*$, computed using Cholesky decomposition. We compute the log likelihood $\ell_\text{HODLR}$ using the HODLR matrix factorization without tweaking any defaults.
-
-$$
-\ell^* = 31.344534039948236,\;\;\; \ell_\text{HODLR}=23.518503030261652
-$$
-
-The relative difference would compute to be $\frac{|\ell^*-\ell_\text{HODLR}|}{\ell^*}=24.97\%$.
+We see clearly from \ref{fig:holdr_rel_err_logl} that with a small $\epsilon$, it improves the average error but at an expense of high deviation. 
+In other words, factoring with a small factorization precision yields better results on the average but fail unpredictably increasingly.
+The improved factorization
 
 This issue was discussed in passing in the paper, see below; The authors concluded that it is not an issue and presented a suggestion to use kd-tree sort to condition the matrix $\KXX$. However, the authors reversed this viewpoint in [Issue 128](https://github.com/dfm/george/issues/128).
 
 > We note that the authors claimed that when the data points at which the kernel to be evaluated at are not approximately uniformly distributed, the performance of the factorization may suffer, but only slightly. A higher level of compression could be obtained in the off-diagonal blocks if the hierarchical tree structure is constructed based on spatial considerations instead of point count, as is the case with some kd-tree implementations.
+
+## $\KXX$ can be conditioned
+
+
 
 \newpage 
 

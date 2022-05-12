@@ -229,20 +229,20 @@ algorithms:
   #     tol: 0.00001
   #     min_size: 100
 
-  GeorgeGP:
-    random_seed: 0
-    solver: HODLRSolver
-    rearrange_fn: rearrange_placebo
-    kernel: ExpSquaredKernel
-    kernel_kwargs:
-      lengthscale: 1.0
-      scale_variance: population
-      noise_variance: 0.01
-    optimizer_kwargs:
-      method: L-BFGS-B
-    model_kwargs:
-      tol: 0.00001
-      min_size: 100
+  # GeorgeGP:
+  #   random_seed: 0
+  #   solver: HODLRSolver
+  #   rearrange_fn: rearrange_placebo
+  #   kernel: ExpSquaredKernel
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.01
+  #   optimizer_kwargs:
+  #     method: L-BFGS-B
+  #   model_kwargs:
+  #     tol: 0.00001
+  #     min_size: 100
 
   # GeorgeGP:
   #   random_seed: 0
@@ -269,18 +269,18 @@ algorithms:
   #   optimizer_kwargs:
   #     max_iter: 15000
 
-  # PyTorchAlexanderGP:
-  #   random_seed: 0
-  #   kernel: RBFKernel
-  #   output_device: cpu
-  #   n_devices: 1
-  #   preconditioner_size: 100
-  #   kernel_kwargs:
-  #     lengthscale: 1.0
-  #     scale_variance: population
-  #     noise_variance: 0.01
-  #   optimizer_kwargs:
-  #     max_iter: 15000
+  PyTorchAlexanderGP:
+    random_seed: 0
+    kernel: RBFKernel
+    output_device: cpu
+    n_devices: 1
+    preconditioner_size: 100
+    kernel_kwargs:
+      lengthscale: 1.0
+      scale_variance: population
+      noise_variance: 0.01
+    optimizer_kwargs:
+      max_iter: 15000
 
   # PyTorchGP:
   #   random_seed: 0
