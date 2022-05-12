@@ -135,6 +135,7 @@ class UCIFunction(Function):
     def __init__(self, is_pre_split, **kwargs):
         super().__init__(**kwargs)
         self.uci_loader = self.config.configs['uci']
+        assert(type(is_pre_split) == bool)
         self.is_pre_split = is_pre_split
 
     def generate_data(self):
