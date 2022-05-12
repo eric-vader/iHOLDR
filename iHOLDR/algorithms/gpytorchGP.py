@@ -33,8 +33,8 @@ class PyTorchGP(CommonGP):
         'noise_variance':'likelihood.noise_covar.noise',
         'scale_variance':'covar_module.outputscale'
     }
-    def __init__(self, output_device, kernel, kernel_kwargs, **kwargs):
-        kernel_kwargs['noise_variance'] += 1e-6
+    def __init__(self, output_device, kernel, kernel_kwargs, jitter=1e-6, **kwargs):
+        kernel_kwargs['noise_variance'] += jitter
         super().__init__(kernel_kwargs=kernel_kwargs, **kwargs)
         self.output_device = torch.device(output_device)
         self.train_x = torch.from_numpy(self.train_data.X.astype(np.float32)).contiguous().to(self.output_device)
@@ -173,9 +173,7 @@ class PyTorchAlexanderGP(PyTorchGP):
     def __init__(self, output_device, preconditioner_size, n_devices, test_checkpoint_size=1000, **kwargs):
         if output_device == "cpu":
             PyTorchAlexanderGP.kernel_kwargs_mapper = PyTorchGP.kernel_kwargs_mapper
-        else:
-            self.sufficient_resources = self.sufficient_resources_gpu
-            
+
         super().__init__(output_device=output_device, **kwargs)
 
         self.n_devices = n_devices
@@ -183,14 +181,13 @@ class PyTorchAlexanderGP(PyTorchGP):
         # Set a large enough preconditioner size to reduce the number of CG iterations run
         self.preconditioner_size = preconditioner_size
         if self.sufficient_resources():
+            logging.info("Find best train_checkpoint_size.")
             self.train_checkpoint_size = self.find_best_partition_setting()
             logging.info(f"Found best train_checkpoint_size to be {self.train_checkpoint_size}")
             self.test_checkpoint_size = test_checkpoint_size
 
-    def sufficient_resources_gpu(self):
-        n_bytes = self.data.X.size * self.train_data.X.itemsize
-        X_MB = int((n_bytes)/(10**6))
-        return X_MB < self.free_MB
+    def sufficient_resources(self):
+        return True
 
     def compute_log_likelihood(self):
 
@@ -307,9 +304,9 @@ class PyTorchAlexanderGP(PyTorchGP):
             if checkpoint_size == 0:
                 N_part = 1
             else:
-                N_part = N/checkpoint_size
+                N_part = int(N/checkpoint_size)
 
-            needed_mem_bytes = (N**2 / N_part) * 32 / (8)
+            needed_mem_bytes = (N**2 / N_part) * 32 / (8) * 4 # The 4 is a factor so that there is enough memory to buffer other operations.
             needed_mem_MB = needed_mem_bytes / (10**6)
             needed_mem_GiB = needed_mem_bytes / (1024**3)
 
