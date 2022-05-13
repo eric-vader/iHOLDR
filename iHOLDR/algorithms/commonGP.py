@@ -94,6 +94,7 @@ class CommonGP(common.Component):
                 self.compute_log_likelihood()
                 time_taken_ns = process_time_ns()-start_time_ns
                 ru_maxrss_KB = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+                print(ru_maxrss_KB)
                 # Clean-up
                 self.clean_up(f'compute_log_likelihood_{i:03}')
                 

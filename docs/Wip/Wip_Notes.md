@@ -1,7 +1,7 @@
 ---
 title: Improved Fast Direct Methods for Gaussian Processes
 author: Eric Han
-date: February 11, 2022
+date: May 13, 2022
 bibliography: bibliography.bib
 header-includes:
   - \input{preamble.tex}
@@ -25,34 +25,46 @@ $$
 \log{p(\yv|\Xv,\thetav)} = - \frac{1}{2}\yv^{\top}\parens{\Kv+\eta^2\Iv}^{-1}\yv-\frac{1}{2}\log{|\Kv+\eta^2\Iv|}-\frac{n}{2}\log{2\pi}
 $$
 
-For large $n$, the computational cost of inverting $\KXX=\Kv_t+\eta^2\Iv_t$ and finding $|\KXX|$ is expensive; the traditional/direct methods for dense systems scales quadratically:
+For large $n$, the computational cost of inverting $\KXX=\Kv_t+\eta^2\Iv_t$ and finding $|\KXX|$ is expensive; 
+the traditional/direct methods via Cholesky decomposition scales quadratically.
+The main contribution to the complexity is due to the factorization of the positive-semidefinite matrix $\KXX$ into $L \times L^\top$:
 
-* The time complexity is $O(n^3)$.
-* The space complexity is $O(n^2)$, needed to store the lower triangular factor $L$ along with $\KXX$.
+* In general, the time complexity is $O(n^3)$.
+* Space complexity is $O(n^2)$, needed to store the lower triangular factor $L$ along with $\KXX$.
 
-Traditionally, Cholesky decomposition is used, factoring the positive-semidefinite matrix $\KXX$ into $L \times L^\top$.
 
 # Related Work
 
-There are generally 2 approaches to address the scaling issue:
+Broadly, there are generally 2 approaches; 
+attempting to scale the factorization while preserving exact solution or performing approximations to speed-up computation.
 
 1. Exact solutions - Find the exact solution to the matrix inversion.
-    1. $LU$ decomposition
-    1. Cholesky decomposition
+    1. Naively using direct matrix inversion,
+    1. Naively using $LU$ decomposition, 
+    1. Cholesky decomposition, via the various numerical packages,
         * Implementation: Scikit-Learn (via Numpy, Blas/Lapack)
         * Implementation: GPy (via Scipy, Blas/Lapack)
         * Implementation: GPflow (via Tensorflow)
+        * Implementation: GPTorch (via PyTorch)
+        * Implementation: George (via Scipy, Blas/Lapack)
     1. Conjugate gradients method (CG)
         1. [Exact Gaussian Processes on a Million Data Points](https://arxiv.org/abs/1903.08114)
-            * Author's Implementation (GPyTorch): [Exact GPs with GPU Acceleration](https://docs.gpytorch.ai/en/latest/examples/02_Scalable_Exact_GPs/index.html#exact-gps-with-gpu-acceleration)
+            * Implementation on GPyTorch: [Exact GPs with GPU Acceleration](https://docs.gpytorch.ai/en/latest/examples/02_Scalable_Exact_GPs/index.html#exact-gps-with-gpu-acceleration) (Original Author's)
     1. Hierarchical Off-Diagonal Low-Rank (HODLR) matrix factorization
         1. [Fast Direct Methods for Gaussian Processes](https://arxiv.org/pdf/1403.6015)
-            * Author's Implementation: [George](https://george.readthedocs.io/en/latest/)
+            * Implementation on George: [George](https://george.readthedocs.io/en/latest/) (Original Author's)
 1. Approximate solutions - Trade-off accuracy to improve computational cost.
     1. Mixture-of-experts
     1. Sampling $m$ Inducing points
+        1. Sparse and Variational Gaussian Process
+            * Implementation on GPy: SVGP
+        1. Sparse Gaussian Process Regression
+            * Implementation on GPy: SGPR
     1. Random feature expansions
-1. [Numerical issues in maximum likelihood parameter estimation for Gaussian process interpolation](https://arxiv.org/pdf/2101.09747.pdf)
+
+The key differece between the 2 approaches is the accurate computation of the log likelihood. 
+Specifically, the approximate methods sacrifice accuracy for speed.
+This work discusses the the impact of numerical issues with the computation on the hyperparameter learnt by the model: [Numerical issues in maximum likelihood parameter estimation for Gaussian process interpolation](https://arxiv.org/pdf/2101.09747.pdf).
 
 ## Exact Gaussian Processes on a Million Data Points
 
@@ -73,25 +85,45 @@ $$
 
 Without forming the kernel matrix directly, using partitioned kernel MVM, 
 
-* Time complexity of $O(n^3)$ ??
-* Space complexity of $O(n)$, assuming $p = n$ partitions.
+* Time complexity of $O(\frac{n^3}{p})$ assuming that the computation is parallelized by $p$ partitions.
+* Space complexity of $O(\frac{n^2}{p})$.
 
-*Note: Time complexity of the process is not discussed in the paper, which needs more thought.*
+*Note: Time complexity of the process is not discussed in the paper, which needs further checking to be confident.*
 
-#### MVM-based GP inference
+#### MVM-based GP inference.
 
-#### CG Computation
+Partition the kernel matrix to perform all matrix-vector multiplications without forming kernel matrix explicitly.
+
+1. Partition $\Xv = \sqparens{\Xv^{(1)}; \cdots; \Xv^{(l)}; \cdots; \Xv^{(p)}}$ to $p$ parts (row)
+2. For each $l$ part:
+    1. Compute $\widehat\Kv_{X^{(l)}X}$ with $\Xv^{(l)}, \Xv$
+    2. Compute $\widehat\Kv_{X^{(l)}X} \uv$
+
+Memory requirement $O(n^2/p)$; and when $p \rightarrow n$: $O(n)$.
+
+#### Conjugate Gradients (CG) Computation.
+
+Instead of solving for $\KXX^{-1}$ to find $\xv$, we find $\xv$  directly:
+$$
+\xv^* = {\arg\min}_{\xv} {\Big(\frac{1}{2}\xv^\top \KXX\xv-\xv^\top\yv\Big)}
+$$
+
+* Unique minimizer $\xv$ exist due to positive definite $\KXX$
+* Iterative algorithm with matrix-vector multiplication
+* Iterations can be speed up with preconditioning 
+* Able to decide tolerence of solution $\epsilon = ||\KXX\xv^*-\yv||/||\yv||$
+* Similar to gradient descent, the difference is that CG enforces that the search direction $\pv_i$ is conjugate to each other.
+
+*Note: In the absence of round-off error, it converge to exact solution after $n$ steps.*
 
 ## Sampling $m$ Inducing points
 
-The 2-most popular methods that use this technique:
-
-1. Sparse and Variational Gaussian Process (SVGP) @hensman2014scalable
-2. Sparse Gaussian Process Regression (SGPR) @titsias2009variational 
+1. Sparse and Variational Gaussian Process (SVGP) @hensman2014scalable selects inducing points $Z$ using a regularized objective.
+2. Sparse Gaussian Process Regression (SGPR) @titsias2009variational introduces a set of variational parameters that can be optimized using minibatch training.
 
 ### Process
 
-With $m$-inducing points,
+Along with finding the $m$-inducing points, the complexity required:
 
 * Time complexity of $O(nm^2)$
 * Space complexity of $O(nm)$
@@ -137,7 +169,7 @@ The overall runtime to obtain the matrix inverse of $\KXX$ and its determinant $
 
 The overall space required scales to the number of dense matrices $n/2^{\kappa}\times n/2^{\kappa}$:
 
-* $O(2^{\log{n}} \times \frac{n^2}{4^{\log{n}}}) = O(\frac{n^2}{2^{\log{n}}}) = O(n)$ assuming $\kappa = \log_2{n}$ ??
+* $O(2^{\kappa} \times \frac{n^2}{4^{\kappa}}) = O(\frac{n^2}{2^{\kappa}})$, assuming $\kappa = \log_2{n}$, $O(n)$.
 
 *Note: Original paper did not discuss space complexity, need to put more thought and experiments; It is also not practical to subdivide completely, the authors implementation subdivide until a certain specified size.*
 
@@ -157,7 +189,7 @@ $$
 |\KXX|=|K_\kappa| \times |K_{\kappa-1}| \times \cdots \times |K_{0}|
 $$
 
-## Metrics Used
+## Metrics commonly used in Literature
 
 In this section, we review the various metrics used by the various papers, in a attempt to find the best for us:
 
@@ -173,7 +205,14 @@ In this section, we review the various metrics used by the various papers, in a 
         1. Exponential covariance
     1. Accuracy - Difference of the Root-Mean-Square Errors of the exact method vs HOLDR on a synthetic function $\sin(2x)+\frac{1}{8}{\rm e}^x+\epsilon$.
     1. Compute Time - Assembly Time, Factor Time, Solve Time and Determinant Compute Time.
-    
+1. [Numerical issues in maximum likelihood parameter estimation for Gaussian process interpolation](https://arxiv.org/pdf/2101.09747.pdf):
+    1. Accuracy - Root mean squared prediction error (ERMSPE)
+    1. Optimization is run on the model to find the optimal hyperparameters, then:
+        1. Accuracy - Lengthscale
+        1. Accuracy - Variance
+        1. Accuracy - Negative log-likelihood
+        1. Accuracy - Values of each individual term in the computation of the GP model.
+
 ## Some thoughts
 
 1. RMSE on test set must be used for accuracy comparison.
@@ -192,24 +231,42 @@ Our key motivations for improving *Holdr* is as follows:
 1. *Holdr* is not accurate; it relies on the assumption that $\KXX$ resembles a HODLR matrix; failing which, the accuracy of the matrix inversion and determininant computations is affected in unpredictable ways. The accuracy of the computation improved by setting the factorization precision $\epsilon$ to a smaller number, but the computation can still fail unpredictably.
 1. $\KXX$ can be conditioned, into an equlivant hierarchical matrix $\KXXp$ by performing some reordering operations on $X\rightarrow X'$, improving the matrix structure.
 
-Experiments here are done on the Synthetic Function, $\sin(x)$.
-
 ## *Holdr* is fast
 
-The main advantage of *Holdr* when compared to other methods is that it is very fast (also on scaling).
+The main advantage of *Holdr* when compared to other methods is that it is very fast (at scale).
 Even with a small $\epsilon = 0.000001$, *Holdr* is competitive on time.
+All methods use only the CPU; Alex is converted from running on GPU to running on CPU.
+We let Alex select the optimal kernel size based on the avaliable memory, thereby parallelizing on the CPU.
+Experiments here are done on the Synthetic Function, $\sin(x)$, each datapoint is the average over $100$ independent runs, over the best of the 10 measurements done for each run.
 
 ![Take taken, *Holdr* with $\epsilon=0.000001$ when compared with other methods.](export/fn-sin-perf/ParamMetric/time_taken_ns-ParamMetric-time_taken_ns.pdf){width=50%}
 
-*Note: Some issues with GPyT and Alex, Alex here is using CPU.*
+*Note: Some numerical instability with GPyT due to the implementation on PyTorch; the computation of Cholesky decomposition could not go through for <5\% of the experiments and it is not reflected here. Will fix this shortly.*
 
 ## *Holdr* is space efficient
 
-The next key advantage of *Holdr* when compared to other methods is that it is very space efficient (also on scaling). Placeholder, incomplete.
+The next key advantage of *Holdr* when compared to other methods is that it is very space efficient (at scale).
 
-![Memory used by the computation, *Holdr* with $\epsilon=0.000001$ when compared with other methods.](export/fn-sin-perf/ParamMetric/ru_maxrss_KB-ParamMetric-ru_maxrss_KB.pdf){width=50%}
+\begin{figure}
+     \centering
+     \begin{subfigure}[b]{0.49\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{export/fn-sin-perf/BoxPlot/N20000_ru_maxrss_KB-BoxPlot-ru_maxrss_KB.pdf}
+         \caption{Memory used at $N=20000$.}
+         \label{fig:mem_used_N20000}
+     \end{subfigure}
+     \hfill
+     \begin{subfigure}[b]{0.49\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{export/fn-sin-perf/BoxPlot/N100000_ru_maxrss_KB-BoxPlot-ru_maxrss_KB.pdf}
+         \caption{Memory used at $N=100000$.}
+         \label{fig:mem_used_N100000}
+     \end{subfigure}
+    \caption{Holdr with $\epsilon=0.000001$ when compared with other methods.}
+    \label{fig:mem_used}
+\end{figure}
 
-*Note: Some issues with the chart and experiments, which will be fixed; trust only the last datapoint.*
+*Note: Some issues with the how the memory required is measured, but comparisons within the same $N$ is OK.*
 
 ## *Holdr* is not accurate
 
@@ -243,24 +300,22 @@ We compute the log likelihood $\ell_\text{HODLR}$ using the HODLR matrix factori
          \label{fig:holdr_time}
      \end{subfigure}
     \caption{Holdr with different factorization precisions.}
-    \label{fig:three graphs}
+    \label{fig:holdr}
 \end{figure}
 
 We see clearly from \ref{fig:holdr_rel_err_logl} that with a small $\epsilon$, it improves the average error but at an expense of high deviation. 
-In other words, factoring with a small factorization precision yields better results on the average but fail unpredictably increasingly.
-The improved factorization
+In other words, factoring with a small factorization precision yields better results on the average but can fail unpredictably.
+This give rise to the instability of the computation of log likelihood, which can adversely affect the optimization of model hyperparameters and subsequently RMSE (see \ref{fig:holdr_rmse}).
 
 This issue was discussed in passing in the paper, see below; The authors concluded that it is not an issue and presented a suggestion to use kd-tree sort to condition the matrix $\KXX$. However, the authors reversed this viewpoint in [Issue 128](https://github.com/dfm/george/issues/128).
 
 > We note that the authors claimed that when the data points at which the kernel to be evaluated at are not approximately uniformly distributed, the performance of the factorization may suffer, but only slightly. A higher level of compression could be obtained in the off-diagonal blocks if the hierarchical tree structure is constructed based on spatial considerations instead of point count, as is the case with some kd-tree implementations.
 
+Most importantly, the time taken needed to compute $\epsilon=1e^{-i}$ scales well.
+Even at a small factorization precision $i=6$, it is still faster than the fastest competition.
+This gives us a window of opportunity spend some compute time to condition $\KXX$, even at $i=6$.
+
 ## $\KXX$ can be conditioned
-
-
-
-\newpage 
-
-# Proof of Concept
 
 The key insight is that the the closer the kernel matrix is to an hierarchical matrix, the better the accuracy.
 Since `HOLDR` is fast, we want to pay some computational cost to condition the matrix. 
@@ -291,8 +346,11 @@ x_0 & x_2 & x_1 & x_3 \\
 = \KXXp
 $$
 
-In this proof of concept, we will find the hierarchical matrix $\KXXp$ and its corresponding reordered $X'$ for which allows us to achieve a good accuracy of the log likelihood $\log{p(\yv|\Xv,\thetav)}$.
+We will find the hierarchical matrix $\KXXp$ and its corresponding reordered $X'$ for which allows us to achieve a good accuracy of the log likelihood $\log{p(\yv|\Xv,\thetav)}$.
 
+# Proof-of-Concept
+
+Here, we demonstrate the feasibility of our concept by using the *optimal* metric with Genetic Algorithm.
 We formulate the problem as a optimization problem and use Genetic Algorithm (GA) to find $X'$, with each $i$-iteration candidate solution to be $X_i$. 
 We run the GA with $1000$ iterations and population size of $20$:
 
@@ -318,8 +376,7 @@ Hence, we are confident that it would be possible to perform a reordering operat
 
 # Genetic Algorithm
 
-We have used the *optimal* metric in the Proof of Concept which will not be practical; 
-we are after all aiming to achieve that as a result of our optimization, so using it in our optimization would be cheating, and not to mention not cheap computationally. Here, we will use the same settings as in the proof of concept, with the exception of the fitness function.
+We are after all aiming to achieve that as a result of our optimization, so using it in our optimization would be cheating, and not to mention not cheap computationally. Here, we will use the same settings as in the proof of concept, with the exception of the fitness function.
 
 ## Sum of off-diagonal matrix
 
@@ -506,7 +563,7 @@ $$
 
 # Linear Algebra 
 
-## Principal Component Analysis
+## Principal Component Analysis (PCA)
 
 <!-- [https://math.stackexchange.com/questions/23596/why-is-the-eigenvector-of-a-covariance-matrix-equal-to-a-principal-component](https://math.stackexchange.com/questions/23596/why-is-the-eigenvector-of-a-covariance-matrix-equal-to-a-principal-component) -->
 
@@ -539,7 +596,24 @@ $$
 
 ## Kernel Principal Component Analysis
 
-Placeholder
+Instead, in kernel PCA, a non-trivial, arbitrary $\Phi$ function is 'chosen' that is never calculated explicitly, allowing the possibility to use very-high-dimensional $\Phi$'s if we never have to actually evaluate the data in that space. Since we generally try to avoid working in the $\Phi$-space, which we will call the 'feature space', we can create the N-by-N kernel
+
+$$
+K = k(\mathbf{x},\mathbf{y}) = (\Phi(\mathbf{x}),\Phi(\mathbf{y})) = \Phi(\mathbf{x})^T\Phi(\mathbf{y})
+$$
+
+which represents the inner product space (see Gramian matrix) of the otherwise intractable feature space. 
+In summary, kernel PCA performs PCA in the $\Phi$-space, which is determined by kernel $k(.)$.
+Here, we let $K=\KXX$; solving the PCA in the arbitary $\Phi$-space that corresponds to our chosen kernel.
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=.3\textwidth]{sin_kXX.png}
+    \includegraphics[width=.3\textwidth]{la-kpca.png}
+\caption{Heatmap of the $\KXX$ matrices - left is the kernel matrix of $X_0$, right is after.}
+\end{figure}
+
+*Note: Parts are lifted from Wikipedia, which needs to be rewritten.*
 
 # Difference Sorting
 
@@ -547,6 +621,8 @@ Placeholder
 
 
 # Experiments
+
+All holdr used $\epsilon=0.0001$.
 
 ## Dataset
 
@@ -620,5 +696,7 @@ The model's noise variance is set $\eta^2=0.01$ to account for noisy observation
     * *H_PCA* - Holdr with PCA
     * *H_KPCA* - Holdr with KPCA
     * *H_Grf* - Holdr with Kernighan-Lin Graph Bisection
+
+\newpage
 
 # References

@@ -1,7 +1,7 @@
 datasets:
   Function:
     random_seed: 0
-    n_samples: 125000
+    n_samples: 25000
     n_train_ratio: 0.8
     fn_kwargs:
       fn: 'lambda x:np.sin(x)'
@@ -230,6 +230,7 @@ algorithms:
   #     min_size: 100
 
   GeorgeGP:
+    m_repeats: 10
     random_seed: 0
     solver: HODLRSolver
     rearrange_fn: rearrange_placebo
@@ -270,6 +271,7 @@ algorithms:
   #     max_iter: 15000
 
   # PyTorchAlexanderGP:
+  #   m_repeats: 1
   #   random_seed: 0
   #   kernel: RBFKernel
   #   output_device: cpu
