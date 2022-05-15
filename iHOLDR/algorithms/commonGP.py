@@ -78,8 +78,6 @@ class CommonGP(common.Component):
         if self.test_mode:
             self.run_test()
             return
-
-        metrics_dict = {}
     
         if not self.sufficient_resources():
             logging.info("Skipping experiment due to insufficient resources.")
@@ -91,26 +89,26 @@ class CommonGP(common.Component):
             ru_maxrss_KB_list = []
             for i in range(self.m_repeats):
                 start_time_ns = process_time_ns() 
-                self.compute_log_likelihood()
+                log_likelihood = self.compute_log_likelihood()
                 time_taken_ns = process_time_ns()-start_time_ns
+                # https://stackoverflow.com/questions/12050913/whats-the-unit-of-ru-maxrss-on-linux
+                # maximum resident set size, maxrss kilobytes
                 ru_maxrss_KB = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-                print(ru_maxrss_KB)
+
                 # Clean-up
                 self.clean_up(f'compute_log_likelihood_{i:03}')
                 
                 total_time_taken_ns += time_taken_ns
                 ea_metrics_dict = {
                     'time_taken_ns': time_taken_ns,
-                    'ru_maxrss_KB': ru_maxrss_KB
+                    'ru_maxrss_KB': ru_maxrss_KB,
+                    'log_likelihood': log_likelihood
                 }
                 self.mlflow_logger.log_metrics(ea_metrics_dict, i)
                 ru_maxrss_KB_list.append(ru_maxrss_KB)
-            
-            metrics_dict['avg_time_taken_ns'] = total_time_taken_ns / self.m_repeats
-            # https://stackoverflow.com/questions/12050913/whats-the-unit-of-ru-maxrss-on-linux
-            # maximum resident set size, maxrss kilobytes
-            metrics_dict['min_ru_maxrss_KB'] = min(ru_maxrss_KB_list)
         else:
+            metrics_dict = {}
+
             logging.info(f"Starting prediction (non-opt) using kernel with kernel_params = (var, ls) = {self.kernel_kwargs_original['scale_variance'], self.kernel_kwargs_original['lengthscale']}")
             y_predicted, log_likelihood, kernel_params = self.predict(self.test_data.X, False)
             rmse = mean_squared_error(self.test_data.y, y_predicted, squared=False)
@@ -137,7 +135,7 @@ class CommonGP(common.Component):
             metrics_dict['opt_rmse'] = opt_rmse
             metrics_dict['opt_var'], metrics_dict['opt_ls'] = opt_kernel_params
 
-        self.mlflow_logger.log_metrics(metrics_dict, None)
+            self.mlflow_logger.log_metrics(metrics_dict, None)
         self.visualize()
 
     def run_test(self):
