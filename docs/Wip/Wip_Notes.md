@@ -1,7 +1,7 @@
 ---
 title: Improved Fast Direct Methods for Gaussian Processes
 author: Eric Han
-date: May 13, 2022
+date: May 17, 2022
 bibliography: bibliography.bib
 header-includes:
   - \input{preamble.tex}
@@ -373,6 +373,43 @@ $$
 $$
 
 Hence, we are confident that it would be possible to perform a reordering operation on $X$ such that its kernel matrix is a hierarchical matrix.
+
+# Theory
+
+## Background using Travelling Salesman Problem (TSP)
+
+**TSP decision problem** is NP-Complete.
+
+* Input: Graph $G$ and budget $b$
+* Output: Does $G$ admit a tour of weight at most $b$?
+
+**TSP search problem** is NP-Complete.
+
+* Input: Graph $G$ and budget $b$
+* Output: Find a tour of $G$ of weight at most $b$, if it exists.
+
+**TSP optimization problem** is NP-Hard.
+
+* Input: Graph $G$
+* Output: Find a tour of $G$ with minimum weight.
+
+<!-- https://www.quora.com/How-can-I-prove-that-the-Travel-salesman-Problem-is-NP-hard -->
+
+## Finding the reordered $X'$
+
+**Decision version**: Given $X$ and some absolute difference $\delta_\ell$, determine if there is a rearrangement $X'$ such that the absolute difference of the accurate log-likelihood and the rearranged log-likelihood is at most $\delta_\ell$, ie. $|\ell^*-\ell^{(i)}| \leq \delta_\ell$.
+
+* Input: Initial $X$ and $\delta_\ell$
+* Output: Can $X$ be rearranged to $X'$ of accuracy at most $\delta_\ell$?
+
+We reduce a known NP-Hard problem to this problem. Specifically, we reduce from TSP to this problem.
+
+We now reduce TSP to finding $X'$, ie. show TSP $\leq_p$ finding $X'$.
+Every instance of TSP consists of a complete graph $G(V,E)$ with the budget $b$ as the inputs.
+Given $G(V,E)$ with $|V|=n$, we can convert the complete graph $G$ into an adjacency matrix $\KXX$ in polynomial time, ie. over all edges $O(n^2)$.
+In this setup, we note that the kernel distance between the variables $k(x_i, x_j)=c(v_i, v_j)$ is equlivant to the distance between the edges.
+
+\newpage
 
 # Genetic Algorithm
 
