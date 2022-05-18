@@ -40,6 +40,7 @@ class CommonGP(common.Component):
             # Perform any clean GT computation before going on
             logging.info("Computing gt_log_likelihood")
             self.gt_log_likelihood = self.groundtruth_log_likelihood()
+            logging.info(f"gt_log_likelihood = {self.gt_log_likelihood}")
         else:
             logging.info("Skipping gt_log_likelihood due to insufficient resources.")
             self.gt_log_likelihood = 0

@@ -27,6 +27,8 @@ class GeorgeGP(CommonGP):
 
         self.scale_variance = self.kernel_kwargs.pop('scale_variance')
         noise_variance = self.kernel_kwargs.pop('noise_variance')
+        # Kernel takes in ^2 here at George....
+        self.kernel_kwargs['metric'] = self.kernel_kwargs['metric']**2
         self.white_noise = np.log(noise_variance)
         self.yerr = np.sqrt(noise_variance) * np.ones_like(self.train_data.y)
 
@@ -50,10 +52,12 @@ class GeorgeGP(CommonGP):
             self.sufficient_resources = self.sufficient_resources_HODLRSolver
 
         self.is_plot_KXX = is_plot_KXX
-
+    def kernelparm_transform(self, params):
+        exp_params = np.exp(params)
+        return exp_params[0]*self.train_data.D, np.sqrt(exp_params[1])
     def make_model(self):
         kernel = self.scale_variance * self.Kernel(ndim=self.train_data.D, **self.kernel_kwargs)
-        model = george.GP(kernel,solver=self.Solver, **self.model_kwargs) # min_size is the size of the leaf matrices , white_noise=self.white_noise, 
+        model = george.GP(kernel,solver=self.Solver, **self.model_kwargs) # min_size is the size of the leaf matrices , 
         self.rearrange_fn(model, **self.rearrange_kwargs)
         # You need to compute the GP once before starting the optimization.
         model.compute(self.train_data.X, self.yerr)
@@ -79,7 +83,7 @@ class GeorgeGP(CommonGP):
             if self.re_rearrange:
                 self.rearrange_fn(model, **self.rearrange_kwargs)
                 model.compute(self.train_data.X, self.yerr)
-        kernel_params = tuple(np.exp(kernel.get_parameter_vector()))
+        kernel_params = self.kernelparm_transform(kernel.get_parameter_vector())
 
         y_predicted, _ = model.predict(self.train_data.y, X, return_var=False)
         self.model = model # KXX for visualization
