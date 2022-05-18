@@ -1,0 +1,37 @@
+algorithms:
+  GeorgeGP:
+    kernel: ExpSquaredKernel
+    kernel_kwargs:
+      lengthscale: 0.1
+      noise_variance: 0.01
+      scale_variance: 0.5
+    model_kwargs:
+      min_size: 100
+      tol: 0.0001
+    optimizer_kwargs:
+      method: L-BFGS-B
+    random_seed: 8
+    rearrange_fn: rearrange_la_pca
+    rearrange_kwargs:
+      n_components: 1
+    sk_kwargs:
+      kernel: RBF
+    solver: HODLRSolver
+datasets:
+  GPFunction:
+    fn_kwargs:
+      bounds:
+      - - 0
+        - 1
+      - - 0
+        - 1
+      kernel: RBF
+      kernel_kwargs:
+        lengthscale: 0.1
+        variance: 0.5
+    n_samples: 1000
+    n_train_ratio: 0.8
+    noise_kwargs:
+      mean: 0
+      variance: 0.01
+    random_seed: 1

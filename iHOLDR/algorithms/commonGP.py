@@ -7,6 +7,10 @@ import resource
 import os
 from sklearn.metrics import mean_squared_error
 
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.model_selection import GridSearchCV
+from sklearn.gaussian_process.kernels import RBF, DotProduct
+
 import common
 from config import Config
 
@@ -41,6 +45,7 @@ class CommonGP(common.Component):
             logging.info("Computing gt_log_likelihood")
             self.gt_log_likelihood = self.groundtruth_log_likelihood()
             logging.info(f"gt_log_likelihood = {self.gt_log_likelihood}")
+            #self.find_best_kernel_params()
         else:
             logging.info("Skipping gt_log_likelihood due to insufficient resources.")
             self.gt_log_likelihood = 0
@@ -202,3 +207,19 @@ class CommonGP(common.Component):
                0.5 * Y_train.T @ alpha + \
                0.5 * N * np.log(2*np.pi)
         return r
+
+    def find_best_kernel_params(self):
+        X_train = self.train_data.X
+        Y_train = self.train_data.y
+
+        param_grid = [{
+            "alpha":  [1e-2, 1e-3],
+            "kernel": [RBF(l) for l in np.logspace(-1, 1, 2)]
+        }]
+        scores = ['explained_variance', 'r2']
+
+        gp = GaussianProcessRegressor()
+
+        clf = GridSearchCV(estimator=gp, param_grid=param_grid, cv=4)
+        clf.fit(X_train, Y_train)
+        print(clf.best_params_)
