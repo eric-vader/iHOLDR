@@ -22,7 +22,7 @@ class GeorgeGP(CommonGP):
     kernel_kwargs_mapper = {
         'lengthscale':'metric'
     }
-    def __init__(self, solver, kernel, re_rearrange=True, model_kwargs={}, sk_kwargs={}, rearrange_fn='rearrange_placebo', rearrange_kwargs={}, is_plot_KXX=True, **kwargs):
+    def __init__(self, solver, kernel, re_rearrange=True, model_kwargs={}, rearrange_fn='rearrange_placebo', rearrange_kwargs={}, is_plot_KXX=True, **kwargs):
         super().__init__(**kwargs)
 
         self.scale_variance = self.kernel_kwargs.pop('scale_variance')
@@ -37,10 +37,6 @@ class GeorgeGP(CommonGP):
 
         self.rearrange_fn = getattr(self, rearrange_fn)
         self.rearrange_kwargs = rearrange_kwargs
-
-        if sk_kwargs != {}:
-            sk_gp = SklearnGP(**kwargs, **sk_kwargs)
-            self.Sk_Kernel = sk_gp.Kernel
 
         self.train_data_stash = self.train_data.clone()
 
@@ -134,10 +130,10 @@ class GeorgeGP(CommonGP):
 
     def rearrange_la_kpca_sk(self, model, n_components):
 
-        scale_variance, length_scale = np.exp(model.get_parameter_vector())
-        kernel = scale_variance * self.Sk_Kernel(length_scale=length_scale)
+        def _kernel(x1, x2):
+            return model.kernel.get_value(x1.reshape(1,-1), x2.reshape(1,-1))
 
-        pca = KernelPCA(kernel=kernel, n_components=n_components, random_state=self.random_seed)
+        pca = KernelPCA(kernel=_kernel, n_components=n_components, random_state=self.random_seed)
         pca_X = pca.fit_transform(self.train_data.X)
         n_components = self.choose_n_eigvals(pca.eigenvalues_, n_components)
 

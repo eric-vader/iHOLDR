@@ -25,7 +25,7 @@ datasets:
       kernel_kwargs:
         lengthscale: 0.1
         variance: 0.5
-    n_samples: 1000
+    n_samples: 100
     n_train_ratio: 0.8
     noise_kwargs:
       mean: 0
@@ -79,20 +79,20 @@ datasets:
 
 algorithms:
 
-  GeorgeGP:
-    random_seed: 0
-    solver: HODLRSolver
-    rearrange_fn: rearrange_placebo
-    kernel: ExpSquaredKernel
-    kernel_kwargs:
-      lengthscale: 1.0
-      scale_variance: population
-      noise_variance: 0.01
-    optimizer_kwargs:
-      method: L-BFGS-B
-    model_kwargs:
-      tol: 0.1
-      min_size: 100
+  # GeorgeGP:
+  #   random_seed: 0
+  #   solver: HODLRSolver
+  #   rearrange_fn: rearrange_placebo
+  #   kernel: ExpSquaredKernel
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.01
+  #   optimizer_kwargs:
+  #     method: L-BFGS-B
+  #   model_kwargs:
+  #     tol: 0.1
+  #     min_size: 100
 
   # GPflowGP:
   #   random_seed: 0
@@ -164,8 +164,6 @@ algorithms:
   #   rearrange_fn: rearrange_la_pca
   #   rearrange_kwargs:
   #     n_components: null
-  #   sk_kwargs:
-  #     kernel: RBF
   #   kernel: ExpSquaredKernel
   #   kernel_kwargs:
   #     lengthscale: 1.0
@@ -177,24 +175,22 @@ algorithms:
   #     tol: 0.00001
   #     min_size: 100
 
-  # GeorgeGP:
-  #   random_seed: 0
-  #   solver: HODLRSolver
-  #   rearrange_fn: rearrange_la_kpca
-  #   rearrange_kwargs:
-  #     n_components: 5
-  #   sk_kwargs:
-  #     kernel: RBF
-  #   kernel: ExpSquaredKernel
-  #   kernel_kwargs:
-  #     lengthscale: 1.0
-  #     scale_variance: population
-  #     noise_variance: 0.01
-  #   optimizer_kwargs:
-  #     method: L-BFGS-B
-  #   model_kwargs:
-  #     tol: 0.00001
-  #     min_size: 100
+  GeorgeGP:
+    random_seed: 0
+    solver: HODLRSolver
+    rearrange_fn: rearrange_la_kpca
+    rearrange_kwargs:
+      n_components: 5
+    kernel: ExpSquaredKernel
+    kernel_kwargs:
+      lengthscale: 1.0
+      scale_variance: population
+      noise_variance: 0.01
+    optimizer_kwargs:
+      method: L-BFGS-B
+    model_kwargs:
+      tol: 0.00001
+      min_size: 100
 
   # GeorgeGP:
   #   random_seed: 0

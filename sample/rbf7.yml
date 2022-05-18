@@ -2,9 +2,9 @@ algorithms:
   GeorgeGP:
     kernel: ExpSquaredKernel
     kernel_kwargs:
-      lengthscale: 0.1
+      lengthscale: 0.278
       noise_variance: 0.01
-      scale_variance: 0.5
+      scale_variance: 0.145161
     model_kwargs:
       min_size: 100
       tol: 0.1
@@ -14,15 +14,13 @@ algorithms:
     sk_kwargs:
       kernel: RBF
     solver: HODLRSolver
-    rearrange_fn: rearrange_la_pca
-    rearrange_kwargs:
-      n_components: null
+
   # GPflowGP:
   #   random_seed: 0
   #   kernel: RBF
   #   kernel_kwargs:
-  #     lengthscale: 1.0
-  #     scale_variance: population
+  #     lengthscale: 0.278
+  #     scale_variance: 0.145161
   #     noise_variance: 0.01
   #   optimizer_kwargs:
   #     method: L-BFGS-B
