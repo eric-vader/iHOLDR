@@ -50,7 +50,7 @@ class CommonGP(common.Component):
             logging.info(f"gt_log_likelihood = {self.gt_log_likelihood}")
         else:
             logging.info("Skipping gt_log_likelihood due to insufficient resources.")
-            self.gt_log_likelihood = 0
+            self.gt_log_likelihood = None
 
         # Now we adapt the data
         self.train_data, self.test_data, self.data = [ self.adapt_data(d) for d in dxs ]
@@ -123,10 +123,10 @@ class CommonGP(common.Component):
             logging.info(f"rmse = {rmse}, log_likelihood = {log_likelihood}, kernel_params = (var, ls) = {kernel_params}")
             self.clean_up('prediction')
 
-            gt_log_likelihood = self.gt_log_likelihood
             # abs_err = np.abs(log_likelihood+gt_log_likelihood)
             # rel_err = abs_err/np.abs(gt_log_likelihood)
-            metrics_dict['gt_log_likelihood'] = -gt_log_likelihood
+            if self.gt_log_likelihood:
+                metrics_dict['gt_log_likelihood'] = -self.gt_log_likelihood
             # metrics_dict['abs_err_ll'] = abs_err
             # metrics_dict['rel_err_ll'] = rel_err
 
