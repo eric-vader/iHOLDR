@@ -30,6 +30,9 @@ class CommonGP(common.Component):
 
         if kernel_kwargs['scale_variance'] == 'population':
             kernel_kwargs['scale_variance'] = np.var(self.train_data.y)
+        elif kernel_kwargs['scale_variance'] == 'gt' and kernel_kwargs['lengthscale'] == 'gt':
+            kernel_kwargs['scale_variance'], kernel_kwargs['lengthscale'] = self.find_gt_kernel_params()
+        
         self.kernel_kwargs_original = kernel_kwargs.copy()
         self.kernel_kwargs = self.kernel_kwargs_adaptor(kernel_kwargs)
 
@@ -45,7 +48,6 @@ class CommonGP(common.Component):
             logging.info("Computing gt_log_likelihood")
             self.gt_log_likelihood = self.groundtruth_log_likelihood()
             logging.info(f"gt_log_likelihood = {self.gt_log_likelihood}")
-            # self.find_gt_kernel_params()
         else:
             logging.info("Skipping gt_log_likelihood due to insufficient resources.")
             self.gt_log_likelihood = 0
