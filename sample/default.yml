@@ -32,15 +32,15 @@ datasets:
   #     variance: 0.01
   #   random_seed: 5
 
-  HpolibFunction: # 2D
-    random_seed: 0
-    n_samples: 1000
-    n_train_ratio: 0.8
-    fn_kwargs:
-      hpo_fn_ref: Branin
-    noise_kwargs:
-      mean: 0
-      variance: 0.01
+  # HpolibFunction: # 2D
+  #   random_seed: 0
+  #   n_samples: 1000
+  #   n_train_ratio: 0.8
+  #   fn_kwargs:
+  #     hpo_fn_ref: Branin
+  #   noise_kwargs:
+  #     mean: 0
+  #     variance: 0.01
 
   # HpolibFunction: # 2D
   #   random_seed: 0
@@ -52,15 +52,15 @@ datasets:
   #     mean: 0
   #     variance: 0.01
 
-  # HpolibFunction:
-  #   random_seed: 0
-  #   n_samples: 1000
-  #   n_train_ratio: 0.8
-  #   fn_kwargs:
-  #     hpo_fn_ref: Hartmann6
-  #   noise_kwargs:
-  #     mean: 0
-  #     variance: 0.01
+  HpolibFunction:
+    random_seed: 0
+    n_samples: 1000
+    n_train_ratio: 0.8
+    fn_kwargs:
+      hpo_fn_ref: Hartmann6
+    noise_kwargs:
+      mean: 0
+      variance: 0.01
 
   # GPFunction:
   #   random_seed: 0
@@ -92,8 +92,8 @@ algorithms:
   GeorgeGP:
     kernel: ExpSquaredKernel
     kernel_kwargs:
-      lengthscale: 2.154434690031882
-      scale_variance: 2584.466751194521
+      lengthscale: gt
+      scale_variance: gt
       noise_variance: 0.01
     optimizer_kwargs:
       method: L-BFGS-B

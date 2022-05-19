@@ -46,7 +46,7 @@ class CommonGP(common.Component):
         if CommonGP.sufficient_resources(self):
             # Perform any clean GT computation before going on
             logging.info("Computing gt_log_likelihood")
-            self.gt_log_likelihood = self.groundtruth_log_likelihood()
+            self.gt_log_likelihood = -self.groundtruth_log_likelihood()
             logging.info(f"gt_log_likelihood = {self.gt_log_likelihood}")
         else:
             logging.info("Skipping gt_log_likelihood due to insufficient resources.")
@@ -126,7 +126,9 @@ class CommonGP(common.Component):
             # abs_err = np.abs(log_likelihood+gt_log_likelihood)
             # rel_err = abs_err/np.abs(gt_log_likelihood)
             if self.gt_log_likelihood:
-                metrics_dict['gt_log_likelihood'] = -self.gt_log_likelihood
+                metrics_dict['gt_log_likelihood'] = self.gt_log_likelihood
+                rel_err_ll = np.abs((log_likelihood-self.gt_log_likelihood)/self.gt_log_likelihood)
+                logging.info(f"rel error = {rel_err_ll}")
             # metrics_dict['abs_err_ll'] = abs_err
             # metrics_dict['rel_err_ll'] = rel_err
 

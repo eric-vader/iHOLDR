@@ -17,6 +17,7 @@ import copy
 
 from algorithms.sklearn import SklearnGP
 from algorithms.commonGP import CommonGP
+from algorithms.hsort import HSort
 
 class GeorgeGP(CommonGP):
     kernel_kwargs_mapper = {
