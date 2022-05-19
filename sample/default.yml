@@ -10,27 +10,37 @@ datasets:
   #     mean: 0
   #     variance: 0.01
 
-  GPFunction:
-    fn_kwargs:
-      bounds:
-      - - 0
-        - 1
-      - - 0
-        - 1
-      - - 0
-        - 1
-      - - 0
-        - 1
-      kernel: RBF
-      kernel_kwargs:
-        lengthscale: 0.1
-        variance: 0.5
-    n_samples: 100
+  # GPFunction:
+  #   fn_kwargs:
+  #     bounds:
+  #     - - 0
+  #       - 1
+  #     - - 0
+  #       - 1
+  #     - - 0
+  #       - 1
+  #     - - 0
+  #       - 1
+  #     kernel: RBF
+  #     kernel_kwargs:
+  #       lengthscale: 0.1
+  #       variance: 0.5
+  #   n_samples: 1000
+  #   n_train_ratio: 0.8
+  #   noise_kwargs:
+  #     mean: 0
+  #     variance: 0.01
+  #   random_seed: 5
+
+  HpolibFunction: # 2D
+    random_seed: 0
+    n_samples: 1000
     n_train_ratio: 0.8
+    fn_kwargs:
+      hpo_fn_ref: Branin
     noise_kwargs:
       mean: 0
       variance: 0.01
-    random_seed: 5
 
   # HpolibFunction: # 2D
   #   random_seed: 0
@@ -79,20 +89,16 @@ datasets:
 
 algorithms:
 
-  # GeorgeGP:
-  #   random_seed: 0
-  #   solver: HODLRSolver
-  #   rearrange_fn: rearrange_placebo
-  #   kernel: ExpSquaredKernel
-  #   kernel_kwargs:
-  #     lengthscale: 1.0
-  #     scale_variance: population
-  #     noise_variance: 0.01
-  #   optimizer_kwargs:
-  #     method: L-BFGS-B
-  #   model_kwargs:
-  #     tol: 0.1
-  #     min_size: 100
+  GeorgeGP:
+    kernel: ExpSquaredKernel
+    kernel_kwargs:
+      lengthscale: 2.154434690031882
+      scale_variance: 2584.466751194521
+      noise_variance: 0.01
+    optimizer_kwargs:
+      method: L-BFGS-B
+    random_seed: 4
+    solver: BasicSolver
 
   # GPflowGP:
   #   random_seed: 0
@@ -164,6 +170,8 @@ algorithms:
   #   rearrange_fn: rearrange_la_pca
   #   rearrange_kwargs:
   #     n_components: null
+  #   sk_kwargs:
+  #     kernel: RBF
   #   kernel: ExpSquaredKernel
   #   kernel_kwargs:
   #     lengthscale: 1.0
@@ -175,22 +183,24 @@ algorithms:
   #     tol: 0.00001
   #     min_size: 100
 
-  GeorgeGP:
-    random_seed: 0
-    solver: HODLRSolver
-    rearrange_fn: rearrange_la_kpca
-    rearrange_kwargs:
-      n_components: 5
-    kernel: ExpSquaredKernel
-    kernel_kwargs:
-      lengthscale: 1.0
-      scale_variance: population
-      noise_variance: 0.01
-    optimizer_kwargs:
-      method: L-BFGS-B
-    model_kwargs:
-      tol: 0.00001
-      min_size: 100
+  # GeorgeGP:
+  #   random_seed: 0
+  #   solver: HODLRSolver
+  #   rearrange_fn: rearrange_la_kpca
+  #   rearrange_kwargs:
+  #     n_components: 5
+  #   sk_kwargs:
+  #     kernel: RBF
+  #   kernel: ExpSquaredKernel
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.01
+  #   optimizer_kwargs:
+  #     method: L-BFGS-B
+  #   model_kwargs:
+  #     tol: 0.00001
+  #     min_size: 100
 
   # GeorgeGP:
   #   random_seed: 0

@@ -45,7 +45,7 @@ class CommonGP(common.Component):
             logging.info("Computing gt_log_likelihood")
             self.gt_log_likelihood = self.groundtruth_log_likelihood()
             logging.info(f"gt_log_likelihood = {self.gt_log_likelihood}")
-            # self.find_best_kernel_params()
+            # self.find_gt_kernel_params()
         else:
             logging.info("Skipping gt_log_likelihood due to insufficient resources.")
             self.gt_log_likelihood = 0
@@ -208,7 +208,7 @@ class CommonGP(common.Component):
                0.5 * N * np.log(2*np.pi)
         return r
 
-    def find_best_kernel_params(self):
+    def find_gt_kernel_params(self):
         X_train = self.data.X
         fX_train = self.data.fX
 
@@ -220,6 +220,8 @@ class CommonGP(common.Component):
 
         clf = GridSearchCV(estimator=gp, param_grid=param_grid, scoring='neg_root_mean_squared_error', cv=5)
         clf.fit(X_train, fX_train)
-        print(clf.best_params_)
+        best_kernel = clf.best_params_['kernel']
+        scale_variance, lengthscale = best_kernel.k1.constant_value, best_kernel.k2.length_scale
+        logging.info(f"Ground Truth gt_kernel_params = (var, ls) = ({scale_variance}, {lengthscale})")
 
-        print(clf.best_params_)
+        return scale_variance, lengthscale
