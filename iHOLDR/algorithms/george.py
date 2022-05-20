@@ -14,6 +14,7 @@ from scipy.spatial.distance import cdist
 from scipy.optimize import linear_sum_assignment
 import math
 import copy
+from scipy.spatial import cKDTree
 
 from algorithms.sklearn import SklearnGP
 from algorithms.commonGP import CommonGP
@@ -113,6 +114,7 @@ class GeorgeGP(CommonGP):
     def rearrange_placebo(self, model, **rearrange_kwargs):
         pass
 
+
     def rearrange_eric(self, model):
         K = model.get_matrix(self.train_data.X)
         def largest_indices_tril(a):
@@ -158,7 +160,26 @@ class GeorgeGP(CommonGP):
         pca_X = pca.fit_transform(self.train_data.X)
         n_components = self.choose_n_eigvals(pca.eigenvalues_, n_components)
 
-        idx = self.recursive_sort(pca_X, n_components)
+        tree = cKDTree(pca_X)
+
+        # Compute the distances.
+        d, idx = tree.query(pca_X[0], k=len(pca_X))
+        
+
+        # idx = self.recursive_sort(pca_X, n_components)
+        self.train_data.rearrange(idx)
+
+    def rearrange_la_kpca_tree(self, model, n_components):
+
+        def _kernel(x1, x2):
+            return model.kernel.get_value(x1.reshape(1,-1), x2.reshape(1,-1))
+
+        pca = KernelPCA(kernel=_kernel, n_components=n_components, random_state=self.random_seed)
+        pca_X = pca.fit_transform(self.train_data.X)
+        n_components = self.choose_n_eigvals(pca.eigenvalues_, n_components)
+
+        tree = cKDTree(pca_X)
+        d, idx = tree.query(pca_X[0], k=len(pca_X))
         self.train_data.rearrange(idx)
 
     def rearrange_la_pca_np(self, model, n_components):

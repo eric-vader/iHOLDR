@@ -10,27 +10,27 @@ datasets:
   #     mean: 0
   #     variance: 0.01
 
-  # GPFunction:
-  #   fn_kwargs:
-  #     bounds:
-  #     - - 0
-  #       - 1
-  #     - - 0
-  #       - 1
-  #     - - 0
-  #       - 1
-  #     - - 0
-  #       - 1
-  #     kernel: RBF
-  #     kernel_kwargs:
-  #       lengthscale: 0.1
-  #       variance: 0.5
-  #   n_samples: 1000
-  #   n_train_ratio: 0.8
-  #   noise_kwargs:
-  #     mean: 0
-  #     variance: 0.01
-  #   random_seed: 5
+  GPFunction:
+    fn_kwargs:
+      bounds:
+      - - 0
+        - 1
+      - - 0
+        - 1
+      - - 0
+        - 1
+      - - 0
+        - 1
+      kernel: RBF
+      kernel_kwargs:
+        lengthscale: 0.1
+        variance: 0.5
+    n_samples: 1000
+    n_train_ratio: 0.8
+    noise_kwargs:
+      mean: 0
+      variance: 0.01
+    random_seed: 5
 
   # HpolibFunction: # 2D
   #   random_seed: 0
@@ -53,7 +53,7 @@ datasets:
   #     variance: 0.01
 
   # HpolibFunction:
-  #   random_seed: 0
+  #   random_seed: 1
   #   n_samples: 1000
   #   n_train_ratio: 0.8
   #   fn_kwargs:
@@ -62,16 +62,16 @@ datasets:
   #     mean: 0
   #     variance: 0.01
 
-  HpolibFunction: # 2D
-    random_seed: 0
-    n_samples: 1000
-    n_train_ratio: 0.8
-    fn_kwargs:
-      hpo_fn_ref: Branin
-    noise_kwargs:
-      mean: 0
-      variance: 0.01
-    is_normalize: True
+  # HpolibFunction: # 2D
+  #   random_seed: 0
+  #   n_samples: 1000
+  #   n_train_ratio: 0.8
+  #   fn_kwargs:
+  #     hpo_fn_ref: Branin
+  #   noise_kwargs:
+  #     mean: 0
+  #     variance: 0.01
+  #   is_normalize: True
 
   # GPFunction:
   #   random_seed: 0
@@ -197,12 +197,15 @@ algorithms:
   GeorgeGP:
     random_seed: 0
     solver: HODLRSolver
+    rearrange_fn: rearrange_la_kpca_tree
+    rearrange_kwargs:
+      n_components: 2
     sk_kwargs:
       kernel: RBF
     kernel: ExpSquaredKernel
     kernel_kwargs:
-      lengthscale: 0.03593813663804626
-      scale_variance: 0.9753569843822925
+      lengthscale: 1.0
+      scale_variance: population
       noise_variance: 0.01
     optimizer_kwargs:
       method: L-BFGS-B
