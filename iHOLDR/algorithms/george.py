@@ -165,15 +165,7 @@ class GeorgeGP(CommonGP):
 
     def rearrange_la_kpca_tree(self, model, n_components):
 
-        # K = model.get_matrix(self.train_data.X)
-        # def largest_indices_tril(a):
-        #     m = a.shape[0]
-        #     r,c = np.tril_indices(m,-1)
-        #     idx = a[r,c].argpartition(-1)[-1:]
-        #     return (r[idx][0], c[idx][0])
-
-        # curr_id = largest_indices_tril(K)[0]
-        curr_id = 0
+        curr_id = np.argmax(np.sum(model.get_matrix(self.train_data.X), axis=0))
 
         def _kernel(x1, x2):
             return model.kernel.get_value(x1.reshape(1,-1), x2.reshape(1,-1))
@@ -183,7 +175,32 @@ class GeorgeGP(CommonGP):
         n_components = self.choose_n_eigvals(pca.eigenvalues_, n_components)
 
         tree = cKDTree(pca_X)
-        d, idx = tree.query(pca_X[curr_id], k=len(pca_X))
+        d, c_idx = tree.query(pca_X[curr_id], k=len(pca_X))
+        idx = [curr_id]
+        for i in range(1, len(c_idx), 2):
+            if i == len(c_idx)-1:
+                idx = [ c_idx[i] ] + idx
+            else:
+                idx = [ c_idx[i] ] + idx + [ c_idx[i+1] ]
+        # d, idx = tree.query(pca_X[curr_id], k=len(pca_X))
+        
+        self.train_data.rearrange(idx)
+    def rearrange_la_pca_tree(self, model, n_components):
+
+        curr_id = np.argmax(np.sum(model.get_matrix(self.train_data.X), axis=0))
+
+        pca = PCA(n_components=n_components, random_state=self.random_seed)
+        pca_X = pca.fit_transform(self.train_data.X)
+        n_components = self.choose_n_eigvals(pca.singular_values_, n_components)
+        
+        tree = cKDTree(pca_X)
+        d, c_idx = tree.query(pca_X[curr_id], k=len(pca_X))
+        idx = [curr_id]
+        for i in range(1, len(c_idx), 2):
+            if i == len(c_idx)-1:
+                idx = [ c_idx[i] ] + idx
+            else:
+                idx = [ c_idx[i] ] + idx + [ c_idx[i+1] ]
         self.train_data.rearrange(idx)
 
     def rearrange_la_pca_np(self, model, n_components):
