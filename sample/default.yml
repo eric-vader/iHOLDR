@@ -52,15 +52,26 @@ datasets:
   #     mean: 0
   #     variance: 0.01
 
-  HpolibFunction:
+  # HpolibFunction:
+  #   random_seed: 0
+  #   n_samples: 1000
+  #   n_train_ratio: 0.8
+  #   fn_kwargs:
+  #     hpo_fn_ref: Hartmann6
+  #   noise_kwargs:
+  #     mean: 0
+  #     variance: 0.01
+
+  HpolibFunction: # 2D
     random_seed: 0
     n_samples: 1000
     n_train_ratio: 0.8
     fn_kwargs:
-      hpo_fn_ref: Hartmann6
+      hpo_fn_ref: Branin
     noise_kwargs:
       mean: 0
       variance: 0.01
+    is_normalize: True
 
   # GPFunction:
   #   random_seed: 0
@@ -89,16 +100,16 @@ datasets:
 
 algorithms:
 
-  GeorgeGP:
-    kernel: ExpSquaredKernel
-    kernel_kwargs:
-      lengthscale: gt
-      scale_variance: gt
-      noise_variance: 0.01
-    optimizer_kwargs:
-      method: L-BFGS-B
-    random_seed: 4
-    solver: BasicSolver
+  # GeorgeGP:
+  #   kernel: ExpSquaredKernel
+  #   kernel_kwargs:
+  #     lengthscale: gt
+  #     scale_variance: gt
+  #     noise_variance: 0.01
+  #   optimizer_kwargs:
+  #     method: L-BFGS-B
+  #   random_seed: 4
+  #   solver: BasicSolver
 
   # GPflowGP:
   #   random_seed: 0
@@ -183,24 +194,21 @@ algorithms:
   #     tol: 0.00001
   #     min_size: 100
 
-  # GeorgeGP:
-  #   random_seed: 0
-  #   solver: HODLRSolver
-  #   rearrange_fn: rearrange_la_kpca
-  #   rearrange_kwargs:
-  #     n_components: 5
-  #   sk_kwargs:
-  #     kernel: RBF
-  #   kernel: ExpSquaredKernel
-  #   kernel_kwargs:
-  #     lengthscale: 1.0
-  #     scale_variance: population
-  #     noise_variance: 0.01
-  #   optimizer_kwargs:
-  #     method: L-BFGS-B
-  #   model_kwargs:
-  #     tol: 0.00001
-  #     min_size: 100
+  GeorgeGP:
+    random_seed: 0
+    solver: HODLRSolver
+    sk_kwargs:
+      kernel: RBF
+    kernel: ExpSquaredKernel
+    kernel_kwargs:
+      lengthscale: 0.03593813663804626
+      scale_variance: 0.9753569843822925
+      noise_variance: 0.01
+    optimizer_kwargs:
+      method: L-BFGS-B
+    model_kwargs:
+      tol: 0.1
+      min_size: 100
 
   # GeorgeGP:
   #   random_seed: 0

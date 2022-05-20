@@ -113,6 +113,26 @@ class GeorgeGP(CommonGP):
     def rearrange_placebo(self, model, **rearrange_kwargs):
         pass
 
+    def rearrange_eric(self, model):
+        K = model.get_matrix(self.train_data.X)
+        def largest_indices_tril(a):
+            m = a.shape[0]
+            r,c = np.tril_indices(m,-1)
+            idx = a[r,c].argpartition(-1)[-1:]
+            return (r[idx][0], c[idx][0])
+
+        curr_id = largest_indices_tril(K)[0]
+        mask = np.zeros(K.shape[0], dtype=bool)
+        mask[curr_id] = True
+        idx = [ curr_id ]
+        for i in range(K.shape[0]-1):
+            curr_k = np.ma.array(K[:,curr_id], mask=mask)
+            curr_id = np.argmax(curr_k)
+            idx.append(curr_id)
+            mask[curr_id] = True
+        
+        self.train_data.rearrange(idx)
+
     def rearrange_la_pca(self, model, n_components=None):
         self.rearrange_la_pca_sk(model, n_components)
 

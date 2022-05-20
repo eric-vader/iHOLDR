@@ -25,23 +25,25 @@ class DataInstance:
     z: np.ndarray
     y: np.ndarray
     def split(self, ratio):
-
         N_ratioed = int(ratio * self.N)
-
         return DataInstance(D=self.D, N=N_ratioed, X=self.X[:N_ratioed], fX=self.fX[:N_ratioed], z=self.z[:N_ratioed], y=self.y[:N_ratioed]), \
             DataInstance(D=self.D, N=self.N-N_ratioed, X=self.X[N_ratioed:], fX=self.fX[N_ratioed:], z=self.z[N_ratioed:], y=self.y[N_ratioed:])
-
     def rearrange(self, idx):
         self.X[:] = self.X[idx]
         self.fX[:] = self.fX[idx]
         self.z[:] = self.z[idx]
         self.y[:] = self.y[idx]
-
     def clone(self):
         return DataInstance(D=self.D, N=self.N, X=self.X.copy(), fX=self.fX.copy(), z=self.z.copy(), y=self.y.copy())
+    def normalize(self, feat_mean_std, lbl_mean_std):
+        mean, std = feat_mean_std
+        self.X = (self.X-mean)/std
+        mean, std = lbl_mean_std
+        self.fX = (self.fX-mean)/std
+        self.y = self.fX + self.z
 
 class Dataset(common.Component):
-    def __init__(self, noise_kwargs, fn_kwargs, n_train_ratio, n_samples=None, **kwargs):
+    def __init__(self, noise_kwargs, fn_kwargs, n_train_ratio, n_samples=None, is_normalize=False, **kwargs):
         super().__init__(**kwargs)
         self.rng = np.random.default_rng(self.random_seed)
         self.n_samples = n_samples
@@ -50,6 +52,7 @@ class Dataset(common.Component):
         self.fn_kwargs = fn_kwargs
 
         self.n_train_ratio = n_train_ratio
+        self.is_normalize = is_normalize
 
     def generate_noise(self, mean, variance):
         # output is always 1D
@@ -65,10 +68,18 @@ class Dataset(common.Component):
         # Here we split the data up to train, test splits
         data = DataInstance(D=D, N=self.n_samples, X=X, fX=fX, z=z, y=y)
         train_data, test_data = data.split(self.n_train_ratio)
-        return train_data, test_data, data
+        return self.normalize_wrap(train_data, test_data, data)
     def generate_X_fX(self, **fn_kwargs):
         raise NotImplementedError
         # Must return of shape X=(self.n_samples, D) and fX=(self.n_samples,)
+    def normalize_wrap(self, *datas):
+        if self.is_normalize:
+            train_data = datas[0]
+            feat_mean_std = train_data.X.mean(axis=0), train_data.X.std(axis=0)
+            lbl_mean_std = train_data.fX.mean(), train_data.fX.std()
+            for d in datas:
+                d.normalize(feat_mean_std, lbl_mean_std)
+        return datas
 
 class Function(Dataset):
     def __init__(self, **kwargs):
@@ -188,7 +199,7 @@ class UCIFunction(Function):
         train_data = DataInstance(D=D, N=len(X_train), X=X_train, fX=fX_train, z=z_train, y=y_train)
         test_data = DataInstance(D=D, N=len(X_test), X=X_test, fX=fX_test, z=z_test, y=y_test)
 
-        return train_data, test_data, data
+        return self.normalize_wrap(train_data, test_data, data)
 
     def load_manual(self, filename, has_header, predict_index):
         dataset_path = self.uci_loader.get_path(filename)
