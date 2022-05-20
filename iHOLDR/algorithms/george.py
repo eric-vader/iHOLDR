@@ -160,13 +160,7 @@ class GeorgeGP(CommonGP):
         pca_X = pca.fit_transform(self.train_data.X)
         n_components = self.choose_n_eigvals(pca.eigenvalues_, n_components)
 
-        tree = cKDTree(pca_X)
-
-        # Compute the distances.
-        d, idx = tree.query(pca_X[0], k=len(pca_X))
-        
-
-        # idx = self.recursive_sort(pca_X, n_components)
+        idx = self.recursive_sort(pca_X, n_components)
         self.train_data.rearrange(idx)
 
     def rearrange_la_kpca_tree(self, model, n_components):
