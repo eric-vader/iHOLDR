@@ -114,6 +114,34 @@ class GeorgeGP(CommonGP):
     def rearrange_placebo(self, model, **rearrange_kwargs):
         pass
 
+    def rearrange_dsort(self, model, ord=None):
+        
+        mean_x = np.mean(self.train_data.X, axis=0, keepdims=True)
+        means_dist = self.train_data.X - mean_x
+        idx = np.argsort(np.linalg.norm(means_dist, axis=1, ord=ord))
+
+        # https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.cdist.html#scipy.spatial.distance.cdist
+
+        # idx = np.argsort(self.train_data.X.reshape(-1))
+
+        # min_idx = np.argsort(means_dist.min(axis=1))
+        # half_len = int(len(min_idx)/2)
+        # first_half = min_idx[:half_len]
+        # second_half = min_idx[half_len:]
+        # first_half = first_half[np.argsort(means_dist[first_half].max(axis=1))]
+        # idx = np.concatenate((first_half, second_half))
+
+        self.train_data.rearrange(idx)
+
+    def rearrange_ksort(self, model, n_components=None):
+
+        if n_components == None:
+            n_components = self.train_data.X.shape[1]
+        else:
+            assert(n_components <= len(self.train_data.X.shape[1]))
+        
+        idx = self.recursive_sort(self.train_data.X, n_components)
+        self.train_data.rearrange(idx)
 
     def rearrange_eric(self, model):
         K = model.get_matrix(self.train_data.X)
