@@ -197,15 +197,15 @@ algorithms:
   GeorgeGP:
     random_seed: 0
     solver: HODLRSolver
-    rearrange_fn: rearrange_la_kpca
-    re_rearrange: True
-    rearrange_kwargs:
-      n_components: 2
-
-    # rearrange_fn: rearrange_dsort
+    # rearrange_fn: rearrange_la_kpca
     # re_rearrange: True
     # rearrange_kwargs:
-    #   metric: kernel
+    #   n_components: 2
+
+    rearrange_fn: rearrange_dsort
+    re_rearrange: True
+    rearrange_kwargs:
+      metric: kernel
 
     sk_kwargs:
       kernel: RBF

@@ -54,9 +54,23 @@ class GeorgeGP(CommonGP):
             self.sufficient_resources = self.sufficient_resources_HODLRSolver
 
         self.is_plot_KXX = is_plot_KXX
+
+        # var, ls
+        min_param = [1e-10, 1e-10]
+        max_param = [1e10, 1e10]
+
+        min_var, min_ls = self.kernelparm_transform(min_param)
+        max_var, max_ls = self.kernelparm_transform(max_param)
+        
+        self.bnds = ((min_var, max_var), (min_ls, max_ls))
+
     def kernelparm_transform(self, params):
+        return np.log([params[0]/self.train_data.D, params[1]**2])
+
+    def kernelparm_invtransform(self, params):
         exp_params = np.exp(params)
         return exp_params[0]*self.train_data.D, np.sqrt(exp_params[1])
+
     def make_model(self):
         kernel = self.scale_variance * self.Kernel(ndim=self.train_data.D, **self.kernel_kwargs)
         model = george.GP(kernel,solver=self.Solver, **self.model_kwargs) # min_size is the size of the leaf matrices , 
@@ -82,7 +96,7 @@ class GeorgeGP(CommonGP):
         if perform_opt:
             # https://george.readthedocs.io/en/latest/tutorials/hyper/
             self.optimize_hypers(kernel, model)
-        kernel_params = self.kernelparm_transform(kernel.get_parameter_vector())
+        kernel_params = self.kernelparm_invtransform(kernel.get_parameter_vector())
 
         y_predicted, _ = model.predict(self.train_data.y, X, return_var=False)
         self.model = model # KXX for visualization
@@ -97,11 +111,14 @@ class GeorgeGP(CommonGP):
         def nll(p):
             model.set_parameter_vector(p)
             try:
+                # krp = self.kernelparm_invtransform(p)
+                # print(p, krp)
+                
                 self.hyper_rearrange_fn(model, **self.rearrange_kwargs)
+                model.recompute(quiet=True)
                 ll = model.log_likelihood(self.train_data.y, quiet=True)
                 return -ll if np.isfinite(ll) else 1e25
             except Exception as e:
-                print(e)
                 return 1e25
 
         # And the gradient of the objective function.
@@ -109,18 +126,19 @@ class GeorgeGP(CommonGP):
             model.set_parameter_vector(p)
             try:
                 self.hyper_rearrange_fn(model, **self.rearrange_kwargs)
-                return model.grad_log_likelihood(self.train_data.y, quiet=True)
+                model.recompute(quiet=True)
+                return -model.grad_log_likelihood(self.train_data.y, quiet=True)
             except Exception as e:
-                print(e)
                 return model.get_parameter_vector() * 0.0
 
         # Run the optimization routine.
         p0 = model.get_parameter_vector()
-        results = op.minimize(nll, p0, **self.optimizer_kwargs)
+        results = op.minimize(nll, p0,  jac=grad_nll, **self.optimizer_kwargs)
 
         # Update the kernel and print the final log-likelihood.
         model.set_parameter_vector(results.x)
         self.hyper_rearrange_fn(model, **self.rearrange_kwargs)
+        model.recompute(quiet=True)
 
     # No rearrangement
     def rearrange_placebo(self, model, **rearrange_kwargs):

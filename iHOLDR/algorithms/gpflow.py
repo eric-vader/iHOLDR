@@ -38,6 +38,7 @@ class GPflowGP(CommonGP):
         model = self.make_model()
 
         if perform_opt:
+            # jac is pre baked
             scipy_opt = gpflow.optimizers.Scipy()
             scipy_opt.minimize(model.training_loss, model.trainable_variables, **self.optimizer_kwargs)
 
