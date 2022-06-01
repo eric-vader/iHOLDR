@@ -114,7 +114,6 @@ algorithms:
 
   # GPflowGP:
   #   random_seed: 0
-  #   m_repeats: 1
   #   kernel: RBF
   #   kernel_kwargs:
   #     lengthscale: 1.0
@@ -198,9 +197,16 @@ algorithms:
   GeorgeGP:
     random_seed: 0
     solver: HODLRSolver
-    rearrange_fn: rearrange_ksort
+    rearrange_fn: rearrange_la_kpca
+    re_rearrange: True
+    rearrange_kwargs:
+      n_components: 2
+
+    # rearrange_fn: rearrange_dsort
+    # re_rearrange: True
     # rearrange_kwargs:
-    #   ord: 3
+    #   metric: kernel
+
     sk_kwargs:
       kernel: RBF
     kernel: ExpSquaredKernel
@@ -218,8 +224,9 @@ algorithms:
   #   random_seed: 0
   #   solver: HODLRSolver
   #   rearrange_fn: rearrange_graph_kernighan
+  #   re_rearrange: True
   #   rearrange_kwargs:
-  #     k: 6
+  #     k: 1
   #     max_iter: 10
   #   kernel: ExpSquaredKernel
   #   kernel_kwargs:

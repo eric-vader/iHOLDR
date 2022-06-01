@@ -24,7 +24,7 @@ class GeorgeGP(CommonGP):
     kernel_kwargs_mapper = {
         'lengthscale':'metric'
     }
-    def __init__(self, solver, kernel, re_rearrange=True, model_kwargs={}, rearrange_fn='rearrange_placebo', rearrange_kwargs={}, is_plot_KXX=True, **kwargs):
+    def __init__(self, solver, kernel, re_rearrange=False, model_kwargs={}, rearrange_fn='rearrange_placebo', rearrange_kwargs={}, is_plot_KXX=True, **kwargs):
         super().__init__(**kwargs)
 
         self.scale_variance = self.kernel_kwargs.pop('scale_variance')
@@ -43,6 +43,10 @@ class GeorgeGP(CommonGP):
         self.train_data_stash = self.train_data.clone()
 
         self.re_rearrange = re_rearrange
+        if self.re_rearrange:
+            self.hyper_rearrange_fn = self.rearrange_fn
+        else:
+            self.hyper_rearrange_fn = lambda *args, **kwargs: None
         
         self.model_kwargs = model_kwargs
         if solver == "HODLRSolver":
@@ -78,9 +82,6 @@ class GeorgeGP(CommonGP):
         if perform_opt:
             # https://george.readthedocs.io/en/latest/tutorials/hyper/
             self.optimize_hypers(kernel, model)
-            if self.re_rearrange:
-                self.rearrange_fn(model, **self.rearrange_kwargs)
-                model.compute(self.train_data.X, self.yerr)
         kernel_params = self.kernelparm_transform(kernel.get_parameter_vector())
 
         y_predicted, _ = model.predict(self.train_data.y, X, return_var=False)
@@ -95,30 +96,42 @@ class GeorgeGP(CommonGP):
         # Define the objective function (negative log-likelihood in this case).
         def nll(p):
             model.set_parameter_vector(p)
-            ll = model.log_likelihood(self.train_data.y, quiet=True)
-            return -ll if np.isfinite(ll) else 1e25
+            try:
+                self.hyper_rearrange_fn(model, **self.rearrange_kwargs)
+                ll = model.log_likelihood(self.train_data.y, quiet=True)
+                return -ll if np.isfinite(ll) else 1e25
+            except Exception as e:
+                print(e)
+                return 1e25
 
         # And the gradient of the objective function.
         def grad_nll(p):
             model.set_parameter_vector(p)
-            return -model.grad_log_likelihood(self.train_data.y, quiet=True)
+            try:
+                self.hyper_rearrange_fn(model, **self.rearrange_kwargs)
+                return model.grad_log_likelihood(self.train_data.y, quiet=True)
+            except Exception as e:
+                print(e)
+                return model.get_parameter_vector() * 0.0
 
         # Run the optimization routine.
         p0 = model.get_parameter_vector()
-        results = op.minimize(nll, p0, jac=grad_nll, **self.optimizer_kwargs)
+        results = op.minimize(nll, p0, **self.optimizer_kwargs)
 
         # Update the kernel and print the final log-likelihood.
         model.set_parameter_vector(results.x)
+        self.hyper_rearrange_fn(model, **self.rearrange_kwargs)
 
     # No rearrangement
     def rearrange_placebo(self, model, **rearrange_kwargs):
         pass
 
-    def rearrange_dsort(self, model, ord=None):
-        
-        mean_x = np.mean(self.train_data.X, axis=0, keepdims=True)
-        means_dist = self.train_data.X - mean_x
-        idx = np.argsort(np.linalg.norm(means_dist, axis=1, ord=ord))
+    def rearrange_dsort(self, model, metric='euclidean'):
+
+        if metric == "kernel":
+            metric = lambda x1, x2: model.kernel.get_value(x1.reshape(1,-1), x2.reshape(1,-1))
+
+        idx = self.dsort(self.train_data.X, metric=metric)
 
         # https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.cdist.html#scipy.spatial.distance.cdist
 
@@ -132,6 +145,10 @@ class GeorgeGP(CommonGP):
         # idx = np.concatenate((first_half, second_half))
 
         self.train_data.rearrange(idx)
+    def dsort(self, X, metric):
+        mean_x = np.mean(X, axis=0, keepdims=True)
+        dist_x = cdist(X, mean_x, metric=metric).reshape(-1)
+        return np.argsort(dist_x)
 
     def rearrange_ksort(self, model, n_components=None):
 
@@ -140,7 +157,7 @@ class GeorgeGP(CommonGP):
         else:
             assert(n_components <= len(self.train_data.X.shape[1]))
         
-        idx = self.recursive_sort(self.train_data.X, n_components)
+        idx = self.recursive_ksort(self.train_data.X, n_components)
         self.train_data.rearrange(idx)
 
     def rearrange_eric(self, model):
@@ -176,7 +193,7 @@ class GeorgeGP(CommonGP):
         pca_X = pca.fit_transform(self.train_data.X)
         n_components = self.choose_n_eigvals(pca.singular_values_, n_components)
         
-        idx = self.recursive_sort(pca_X, n_components)
+        idx = self.recursive_ksort(pca_X, n_components)
         self.train_data.rearrange(idx)
 
     def rearrange_la_kpca_sk(self, model, n_components):
@@ -188,9 +205,8 @@ class GeorgeGP(CommonGP):
         pca_X = pca.fit_transform(self.train_data.X)
         n_components = self.choose_n_eigvals(pca.eigenvalues_, n_components)
 
-        idx = self.recursive_sort(pca_X, n_components)
+        idx = self.recursive_ksort(pca_X, n_components)
         self.train_data.rearrange(idx)
-
     def rearrange_la_kpca_tree(self, model, n_components):
 
         curr_id = np.argmax(np.sum(model.get_matrix(self.train_data.X), axis=0))
@@ -267,7 +283,7 @@ class GeorgeGP(CommonGP):
         # Collect the top k eigenvectors (projected examples)
         pca_X = np.column_stack([eigvecs[:, i] for i in range(n_components)])
 
-        idx = self.recursive_sort(pca_X, n_components)
+        idx = self.recursive_ksort(pca_X, n_components)
         
         self.train_data.rearrange(idx)
     
@@ -368,7 +384,7 @@ class GeorgeGP(CommonGP):
             assert(n_components <= len(eigvals))
         return n_components
 
-    def recursive_sort(self, pca_X, n_components):
+    def recursive_ksort(self, pca_X, n_components):
         submatrices_idx = [ np.argsort(pca_X[:, 0].reshape(-1)) ]
         for component_i in range(1, n_components):
             submatrices_idx = sum([ np.array_split(submatrix_ids, 2) for submatrix_ids in submatrices_idx ], [])
