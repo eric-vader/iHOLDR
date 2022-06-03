@@ -5,11 +5,14 @@ import george
 import scipy.optimize as op
 from sklearn.decomposition import PCA, KernelPCA
 import sklearn
+from sklearn.random_projection import SparseRandomProjection
+
+from scipy.spatial import cKDTree
 import matplotlib.pyplot as plt
 from functools import reduce
 import networkx as nx
 from collections import defaultdict
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, FeatureAgglomeration
 from scipy.spatial.distance import cdist
 from scipy.optimize import linear_sum_assignment
 import math
@@ -104,36 +107,40 @@ class GeorgeGP(CommonGP):
         return y_predicted, model.log_likelihood(self.train_data.y, quiet=True), kernel_params
     def optimize_hypers(self, kernel, model):
 
+        # for DEBUG----------------------
+        # i = 0
+        # for DEBUG----------------------
+
         # we need to implement batched LBFGS
         # https://docs.ray.io/en/latest/ray-core/examples/plot_lbfgs.html
 
         # Define the objective function (negative log-likelihood in this case).
         def nll(p):
             model.set_parameter_vector(p)
+            ll_grad = model.get_parameter_vector() * 0.0
             try:
-                # krp = self.kernelparm_invtransform(p)
-                # print(p, krp)
-                
                 self.hyper_rearrange_fn(model, **self.rearrange_kwargs)
                 model.recompute(quiet=True)
-                ll = model.log_likelihood(self.train_data.y, quiet=True)
-                return -ll if np.isfinite(ll) else 1e25
-            except Exception as e:
-                return 1e25
+                ll = -model.log_likelihood(self.train_data.y, quiet=True)
+                if np.isfinite(ll):
 
-        # And the gradient of the objective function.
-        def grad_nll(p):
-            model.set_parameter_vector(p)
-            try:
-                self.hyper_rearrange_fn(model, **self.rearrange_kwargs)
-                model.recompute(quiet=True)
-                return -model.grad_log_likelihood(self.train_data.y, quiet=True)
+                    # for DEBUG----------------------
+                    # nonlocal i
+                    # self.plot_KXX(self.model.get_matrix(self.train_data.X), f"george/{i:05d}.png")
+                    # i = i + 1
+                    # for DEBUG----------------------
+
+                    ll_grad = -model.grad_log_likelihood(self.train_data.y, quiet=True)
+                else:
+                    ll = 1e25
+
+                return ll, ll_grad
             except Exception as e:
-                return model.get_parameter_vector() * 0.0
+                return 1e25, ll_grad
 
         # Run the optimization routine.
         p0 = model.get_parameter_vector()
-        results = op.minimize(nll, p0,  jac=grad_nll, **self.optimizer_kwargs)
+        results = op.minimize(nll, p0,  jac=True, **self.optimizer_kwargs)
 
         # Update the kernel and print the final log-likelihood.
         model.set_parameter_vector(results.x)
@@ -143,6 +150,12 @@ class GeorgeGP(CommonGP):
     # No rearrangement
     def rearrange_placebo(self, model, **rearrange_kwargs):
         pass
+
+    # Random rearrangement
+    def rearrange_random(self, model, **rearrange_kwargs):
+        idx = np.arange(self.train_data.X.shape[0])
+        self.rng.shuffle(idx)
+        self.train_data.rearrange(idx)
 
     def rearrange_dsort(self, model, metric='euclidean'):
 
@@ -170,16 +183,21 @@ class GeorgeGP(CommonGP):
 
     def rearrange_ksort(self, model, n_components=None):
 
-        if n_components == None:
-            n_components = self.train_data.X.shape[1]
-        else:
-            assert(n_components <= len(self.train_data.X.shape[1]))
+        n_components = self.infer_n_components(n_components)
         
         idx = self.recursive_ksort(self.train_data.X, n_components)
+        self.train_data.rearrange(idx)
+    def rearrange_kdtree(self, model):
+        # Build a KD-tree on the samples.
+        tree = cKDTree(self.train_data.X)
+
+        # Compute the distances.
+        d, idx = tree.query(self.train_data.X[0], k=len(self.train_data.X))
         self.train_data.rearrange(idx)
 
     def rearrange_eric(self, model):
         K = model.get_matrix(self.train_data.X)
+
         def largest_indices_tril(a):
             m = a.shape[0]
             r,c = np.tril_indices(m,-1)
@@ -196,6 +214,30 @@ class GeorgeGP(CommonGP):
             idx.append(curr_id)
             mask[curr_id] = True
         
+        self.train_data.rearrange(idx)
+    def infer_n_components(self, n_components):
+        if n_components == None:
+            n_components = self.train_data.X.shape[1]
+        else:
+            assert(n_components <= self.train_data.X.shape[1])
+        return n_components
+
+    def rearrange_dr_feata(self, model, n_clusters, affinity='euclidean'):
+        
+        agglo = FeatureAgglomeration(n_clusters=n_clusters, affinity=affinity)
+        trans_X = agglo.fit_transform(self.train_data.X)
+        
+        idx = self.recursive_ksort(trans_X, n_clusters)
+        self.train_data.rearrange(idx)
+
+    def rearrange_dr_rngproj(self, model, n_components=None):
+
+        n_components = self.infer_n_components(n_components)
+
+        transformer = SparseRandomProjection(random_state=self.random_seed, n_components=n_components)
+        trans_X = transformer.fit_transform(self.train_data.X)
+
+        idx = self.recursive_ksort(trans_X, n_components)
         self.train_data.rearrange(idx)
 
     def rearrange_la_pca(self, model, n_components=None):

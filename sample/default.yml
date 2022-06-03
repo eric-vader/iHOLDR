@@ -1,14 +1,15 @@
 datasets:
-  # Function:
-  #   random_seed: 0
-  #   n_samples: 1000
-  #   n_train_ratio: 0.8
-  #   fn_kwargs:
-  #     fn: 'lambda x:np.sin(x)'
-  #     bounds: [[-10,10]]
-  #   noise_kwargs:
-  #     mean: 0
-  #     variance: 0.01
+  Function:
+    random_seed: 0
+    n_samples: 1000
+    n_train_ratio: 0.8
+    fn_kwargs:
+      fn: 'lambda x:np.sin(x)'
+      bounds: [[-10,10]]
+    noise_kwargs:
+      mean: 0
+      variance: 0.01
+    is_normalize: True
 
   # GPFunction:
   #   fn_kwargs:
@@ -32,37 +33,6 @@ datasets:
   #     variance: 0.01
   #   random_seed: 5
 
-  HpolibFunction: # 2D
-    random_seed: 0
-    n_samples: 1000
-    n_train_ratio: 0.8
-    fn_kwargs:
-      hpo_fn_ref: Branin
-    noise_kwargs:
-      mean: 0
-      variance: 0.01
-    is_normalize: True
-
-  # HpolibFunction: # 2D
-  #   random_seed: 0
-  #   n_samples: 1000
-  #   n_train_ratio: 0.8
-  #   fn_kwargs:
-  #     hpo_fn_ref: Branin
-  #   noise_kwargs:
-  #     mean: 0
-  #     variance: 0.01
-
-  # HpolibFunction:
-  #   random_seed: 1
-  #   n_samples: 1000
-  #   n_train_ratio: 0.8
-  #   fn_kwargs:
-  #     hpo_fn_ref: Hartmann6
-  #   noise_kwargs:
-  #     mean: 0
-  #     variance: 0.01
-
   # HpolibFunction: # 2D
   #   random_seed: 0
   #   n_samples: 1000
@@ -73,6 +43,16 @@ datasets:
   #     mean: 0
   #     variance: 0.01
   #   is_normalize: True
+
+  # HpolibFunction:
+  #   random_seed: 1
+  #   n_samples: 1000
+  #   n_train_ratio: 0.8
+  #   fn_kwargs:
+  #     hpo_fn_ref: Hartmann6
+  #   noise_kwargs:
+  #     mean: 0
+  #     variance: 0.01
 
   # GPFunction:
   #   random_seed: 0
@@ -179,6 +159,27 @@ algorithms:
   #   random_seed: 0
   #   solver: HODLRSolver
   #   rearrange_fn: rearrange_la_pca
+  #   re_rearrange: True
+  #   rearrange_kwargs:
+  #     n_components: 1
+  #   sk_kwargs:
+  #     kernel: RBF
+  #   kernel: ExpSquaredKernel
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.01
+  #   optimizer_kwargs:
+  #     method: L-BFGS-B
+  #   model_kwargs:
+  #     tol: 0.1
+  #     min_size: 100
+
+  # GeorgeGP:
+  #   random_seed: 0
+  #   solver: HODLRSolver
+  #   rearrange_fn: rearrange_ksort
+  #   re_rearrange: True
   #   rearrange_kwargs:
   #     n_components: null
   #   sk_kwargs:
@@ -191,22 +192,93 @@ algorithms:
   #   optimizer_kwargs:
   #     method: L-BFGS-B
   #   model_kwargs:
-  #     tol: 0.00001
+  #     tol: 0.1
+  #     min_size: 100
+
+  # GeorgeGP:
+  #   random_seed: 0
+  #   solver: HODLRSolver
+  #   rearrange_fn: rearrange_dsort
+  #   re_rearrange: True
+  #   rearrange_kwargs:
+  #     metric: kernel
+  #   sk_kwargs:
+  #     kernel: RBF
+  #   kernel: ExpSquaredKernel
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.01
+  #   optimizer_kwargs:
+  #     method: L-BFGS-B
+  #   model_kwargs:
+  #     tol: 0.1
+  #     min_size: 100
+
+  # GeorgeGP:
+  #   random_seed: 0
+  #   solver: HODLRSolver
+  #   rearrange_fn: rearrange_kdtree
+  #   sk_kwargs:
+  #     kernel: RBF
+  #   kernel: ExpSquaredKernel
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.01
+  #   optimizer_kwargs:
+  #     method: L-BFGS-B
+  #   model_kwargs:
+  #     tol: 0.1
+  #     min_size: 100
+
+  # GeorgeGP:
+  #   random_seed: 0
+  #   solver: HODLRSolver
+  #   rearrange_fn: rearrange_la_kpca
+  #   re_rearrange: True
+  #   rearrange_kwargs:
+  #     n_components: 2
+  #   sk_kwargs:
+  #     kernel: RBF
+  #   kernel: ExpSquaredKernel
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.01
+  #   optimizer_kwargs:
+  #     method: L-BFGS-B
+  #   model_kwargs:
+  #     tol: 0.1
+  #     min_size: 100
+
+  # GeorgeGP:
+  #   random_seed: 0
+  #   solver: HODLRSolver
+  #   rearrange_fn: rearrange_la_kpca_tree
+  #   re_rearrange: True
+  #   rearrange_kwargs:
+  #     n_components: 2
+  #   sk_kwargs:
+  #     kernel: RBF
+  #   kernel: ExpSquaredKernel
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.01
+  #   optimizer_kwargs:
+  #     method: L-BFGS-B
+  #   model_kwargs:
+  #     tol: 0.1
   #     min_size: 100
 
   GeorgeGP:
     random_seed: 0
     solver: HODLRSolver
-    # rearrange_fn: rearrange_la_kpca
-    # re_rearrange: True
-    # rearrange_kwargs:
-    #   n_components: 2
-
-    rearrange_fn: rearrange_dsort
+    rearrange_fn: rearrange_dr_rngproj
     re_rearrange: True
     rearrange_kwargs:
-      metric: kernel
-
+      n_components: null
     sk_kwargs:
       kernel: RBF
     kernel: ExpSquaredKernel
@@ -217,8 +289,46 @@ algorithms:
     optimizer_kwargs:
       method: L-BFGS-B
     model_kwargs:
-      tol: 0.001
+      tol: 0.1
       min_size: 100
+
+  # GeorgeGP:
+  #   random_seed: 0
+  #   solver: HODLRSolver
+  #   rearrange_fn: rearrange_dr_feata
+  #   re_rearrange: False
+  #   rearrange_kwargs:
+  #     n_clusters: null
+  #   sk_kwargs:
+  #     kernel: RBF
+  #   kernel: ExpSquaredKernel
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.01
+  #   optimizer_kwargs:
+  #     method: L-BFGS-B
+  #   model_kwargs:
+  #     tol: 0.1
+  #     min_size: 100
+
+  # GeorgeGP:
+  #   random_seed: 0
+  #   solver: HODLRSolver
+  #   rearrange_fn: rearrange_eric
+  #   re_rearrange: True
+  #   sk_kwargs:
+  #     kernel: RBF
+  #   kernel: ExpSquaredKernel
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.01
+  #   optimizer_kwargs:
+  #     method: L-BFGS-B
+  #   model_kwargs:
+  #     tol: 0.1
+  #     min_size: 100      
 
   # GeorgeGP:
   #   random_seed: 0
@@ -226,7 +336,7 @@ algorithms:
   #   rearrange_fn: rearrange_graph_kernighan
   #   re_rearrange: True
   #   rearrange_kwargs:
-  #     k: 1
+  #     k: 2
   #     max_iter: 10
   #   kernel: ExpSquaredKernel
   #   kernel_kwargs:
@@ -236,13 +346,14 @@ algorithms:
   #   optimizer_kwargs:
   #     method: L-BFGS-B
   #   model_kwargs:
-  #     tol: 0.00001
+  #     tol: 0.1
   #     min_size: 100
 
   # GeorgeGP:
   #   random_seed: 0
   #   solver: HODLRSolver
   #   rearrange_fn: rearrange_kmeans
+  #   re_rearrange: False
   #   rearrange_kwargs:
   #     n_clusters: 32
   #   kernel: ExpSquaredKernel
@@ -253,13 +364,14 @@ algorithms:
   #   optimizer_kwargs:
   #     method: L-BFGS-B
   #   model_kwargs:
-  #     tol: 0.00001
+  #     tol: 0.1
   #     min_size: 100
 
   # GeorgeGP:
   #   random_seed: 0
   #   solver: HODLRSolver
   #   rearrange_fn: rearrange_kmeans_eq
+  #   re_rearrange: False
   #   rearrange_kwargs:
   #     n_clusters: 32
   #   kernel: ExpSquaredKernel
@@ -270,16 +382,17 @@ algorithms:
   #   optimizer_kwargs:
   #     method: L-BFGS-B
   #   model_kwargs:
-  #     tol: 0.00001
+  #     tol: 0.1
   #     min_size: 100
 
   # GeorgeGP:
   #   random_seed: 0
   #   solver: HODLRSolver
   #   rearrange_fn: rearrange_ga
+  #   re_rearrange: True
   #   rearrange_kwargs:
   #     opt_N: 100
-  #     init_N: 20
+  #     init_N: 10
   #   kernel: ExpSquaredKernel
   #   kernel_kwargs:
   #     lengthscale: 1.0
@@ -288,11 +401,10 @@ algorithms:
   #   optimizer_kwargs:
   #     method: L-BFGS-B
   #   model_kwargs:
-  #     tol: 0.00001
+  #     tol: 0.1
   #     min_size: 100
 
   # GeorgeGP:
-  #   m_repeats: 10
   #   random_seed: 0
   #   solver: HODLRSolver
   #   rearrange_fn: rearrange_placebo
@@ -304,7 +416,23 @@ algorithms:
   #   optimizer_kwargs:
   #     method: L-BFGS-B
   #   model_kwargs:
-  #     tol: 0.00001
+  #     tol: 0.1
+  #     min_size: 100
+
+  # GeorgeGP:
+  #   random_seed: 0
+  #   solver: HODLRSolver
+  #   rearrange_fn: rearrange_random
+  #   re_rearrange: True
+  #   kernel: ExpSquaredKernel
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.01
+  #   optimizer_kwargs:
+  #     method: L-BFGS-B
+  #   model_kwargs:
+  #     tol: 0.1
   #     min_size: 100
 
   # GeorgeGP:
