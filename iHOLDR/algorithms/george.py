@@ -99,6 +99,7 @@ class GeorgeGP(CommonGP):
         if perform_opt:
             # https://george.readthedocs.io/en/latest/tutorials/hyper/
             self.optimize_hypers(kernel, model)
+            self.model_kwargs['tol'] = model.solver_kwargs['tol']
         kernel_params = self.kernelparm_invtransform(kernel.get_parameter_vector())
 
         y_predicted, _ = model.predict(self.train_data.y, X, return_var=False)
@@ -111,41 +112,49 @@ class GeorgeGP(CommonGP):
         # i = 0
         # for DEBUG----------------------
 
-        # we need to implement batched LBFGS
-        # https://docs.ray.io/en/latest/ray-core/examples/plot_lbfgs.html
+        while True:
 
-        # Define the objective function (negative log-likelihood in this case).
-        def nll(p):
-            model.set_parameter_vector(p)
-            ll_grad = model.get_parameter_vector() * 0.0
-            try:
+            # we need to implement batched LBFGS
+            # https://docs.ray.io/en/latest/ray-core/examples/plot_lbfgs.html
+
+            # Define the objective function (negative log-likelihood in this case).
+            def nll(p):
+                model.set_parameter_vector(p)
+                ll_grad = model.get_parameter_vector() * 0.0
+                try:
+                    self.hyper_rearrange_fn(model, **self.rearrange_kwargs)
+                    model.recompute(quiet=True)
+                    ll = -model.log_likelihood(self.train_data.y, quiet=True)
+                    if np.isfinite(ll):
+
+                        # for DEBUG----------------------
+                        # nonlocal i
+                        # self.plot_KXX(self.model.get_matrix(self.train_data.X), f"george/{i:05d}.png")
+                        # i = i + 1
+                        # for DEBUG----------------------
+
+                        ll_grad = -model.grad_log_likelihood(self.train_data.y, quiet=True)
+                    else:
+                        ll = 1e25
+
+                    return ll, ll_grad
+                except Exception as e:
+                    return 1e25, ll_grad
+
+            # Run the optimization routine.
+            p0 = model.get_parameter_vector()
+            results = op.minimize(nll, p0,  jac=True, **self.optimizer_kwargs) # , options=dict(disp=True)
+
+            if not results.success:
+                # try again with lower model.solver_kwargs['tol']
+                model.solver_kwargs['tol'] /= 10
+                logging.info(f"LBFGS failed, retrying with lower tol={model.solver_kwargs['tol']}; {results}")
+            else:
+                # Update the kernel and print the final log-likelihood.
+                model.set_parameter_vector(results.x)
                 self.hyper_rearrange_fn(model, **self.rearrange_kwargs)
                 model.recompute(quiet=True)
-                ll = -model.log_likelihood(self.train_data.y, quiet=True)
-                if np.isfinite(ll):
-
-                    # for DEBUG----------------------
-                    # nonlocal i
-                    # self.plot_KXX(self.model.get_matrix(self.train_data.X), f"george/{i:05d}.png")
-                    # i = i + 1
-                    # for DEBUG----------------------
-
-                    ll_grad = -model.grad_log_likelihood(self.train_data.y, quiet=True)
-                else:
-                    ll = 1e25
-
-                return ll, ll_grad
-            except Exception as e:
-                return 1e25, ll_grad
-
-        # Run the optimization routine.
-        p0 = model.get_parameter_vector()
-        results = op.minimize(nll, p0,  jac=True, **self.optimizer_kwargs)
-
-        # Update the kernel and print the final log-likelihood.
-        model.set_parameter_vector(results.x)
-        self.hyper_rearrange_fn(model, **self.rearrange_kwargs)
-        model.recompute(quiet=True)
+                return
 
     # No rearrangement
     def rearrange_placebo(self, model, **rearrange_kwargs):

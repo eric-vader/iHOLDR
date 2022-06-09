@@ -232,25 +232,25 @@ algorithms:
   #     tol: 0.1
   #     min_size: 100
 
-  # GeorgeGP:
-  #   random_seed: 0
-  #   solver: HODLRSolver
-  #   rearrange_fn: rearrange_la_kpca
-  #   re_rearrange: True
-  #   rearrange_kwargs:
-  #     n_components: 2
-  #   sk_kwargs:
-  #     kernel: RBF
-  #   kernel: ExpSquaredKernel
-  #   kernel_kwargs:
-  #     lengthscale: 1.0
-  #     scale_variance: population
-  #     noise_variance: 0.01
-  #   optimizer_kwargs:
-  #     method: L-BFGS-B
-  #   model_kwargs:
-  #     tol: 0.1
-  #     min_size: 100
+  GeorgeGP:
+    random_seed: 0
+    solver: HODLRSolver
+    rearrange_fn: rearrange_la_kpca
+    re_rearrange: True
+    rearrange_kwargs:
+      n_components: 2
+    sk_kwargs:
+      kernel: RBF
+    kernel: ExpSquaredKernel
+    kernel_kwargs:
+      lengthscale: 1.0
+      scale_variance: population
+      noise_variance: 0.01
+    optimizer_kwargs:
+      method: L-BFGS-B
+    model_kwargs:
+      tol: 0.0001
+      min_size: 100
 
   # GeorgeGP:
   #   random_seed: 0
@@ -272,25 +272,25 @@ algorithms:
   #     tol: 0.1
   #     min_size: 100
 
-  GeorgeGP:
-    random_seed: 0
-    solver: HODLRSolver
-    rearrange_fn: rearrange_dr_rngproj
-    re_rearrange: True
-    rearrange_kwargs:
-      n_components: null
-    sk_kwargs:
-      kernel: RBF
-    kernel: ExpSquaredKernel
-    kernel_kwargs:
-      lengthscale: 1.0
-      scale_variance: population
-      noise_variance: 0.01
-    optimizer_kwargs:
-      method: L-BFGS-B
-    model_kwargs:
-      tol: 0.1
-      min_size: 100
+  # GeorgeGP:
+  #   random_seed: 0
+  #   solver: HODLRSolver
+  #   rearrange_fn: rearrange_dr_rngproj
+  #   re_rearrange: True
+  #   rearrange_kwargs:
+  #     n_components: null
+  #   sk_kwargs:
+  #     kernel: RBF
+  #   kernel: ExpSquaredKernel
+  #   kernel_kwargs:
+  #     lengthscale: 1.0
+  #     scale_variance: population
+  #     noise_variance: 0.01
+  #   optimizer_kwargs:
+  #     method: L-BFGS-B
+  #   model_kwargs:
+  #     tol: 0.1
+  #     min_size: 100
 
   # GeorgeGP:
   #   random_seed: 0
