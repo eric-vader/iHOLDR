@@ -99,7 +99,8 @@ class GeorgeGP(CommonGP):
         if perform_opt:
             # https://george.readthedocs.io/en/latest/tutorials/hyper/
             self.optimize_hypers(kernel, model)
-            self.model_kwargs['tol'] = model.solver_kwargs['tol']
+            if 'tol' in self.model_kwargs:
+                self.model_kwargs['tol'] = model.solver_kwargs['tol']
         kernel_params = self.kernelparm_invtransform(kernel.get_parameter_vector())
 
         y_predicted, _ = model.predict(self.train_data.y, X, return_var=False)
@@ -146,9 +147,15 @@ class GeorgeGP(CommonGP):
             results = op.minimize(nll, p0,  jac=True, **self.optimizer_kwargs) # , options=dict(disp=True)
 
             if not results.success:
-                # try again with lower model.solver_kwargs['tol']
-                model.solver_kwargs['tol'] /= 10
-                logging.info(f"LBFGS failed, retrying with lower tol={model.solver_kwargs['tol']}; {results}")
+                if 'tol' in self.model_kwargs:
+                    # try again with lower model.solver_kwargs['tol']
+                    model.solver_kwargs['tol'] /= 10
+                    logging.info(f"LBFGS failed, retrying with lower tol={model.solver_kwargs['tol']}; {results}")
+                else:
+                    # Return without setting new
+                    self.hyper_rearrange_fn(model, **self.rearrange_kwargs)
+                    model.recompute(quiet=True)
+                    return                    
             else:
                 # Update the kernel and print the final log-likelihood.
                 model.set_parameter_vector(results.x)
