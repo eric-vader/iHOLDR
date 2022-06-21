@@ -5,7 +5,7 @@ conda_env: iHOLDR.yml
 entry_points:
   main:
     parameters:
-      param_file: {type: path, default: sample/default.yml}
+      param_file: {type: str, default: sample/default.yml}
     command: "python iHOLDR/main.py {param_file}"
   start:
     parameters:

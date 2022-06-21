@@ -6,6 +6,7 @@ import importlib
 import os
 import collections
 import logging
+import boto3
 
 from config import Config
 
@@ -19,10 +20,31 @@ class Experiment:
         # We guess if config is a file or not
         extension = os.path.splitext(exp_config)[-1]
 
-        if not os.path.isfile(exp_config):
-            raise FileNotFoundError(f"Cannot experiment file at {exp_config}")
+        if extension == ".yml":
+            if not os.path.isfile(exp_config):
+                raise FileNotFoundError(f"Cannot experiment file at {exp_config}")
+            logging.info(f"Load exp file from {exp_config}")
+            self.exp_args = yaml.load(open(exp_config), yaml.FullLoader)
+        else:
+            endpoint_url = os.getenv('MLFLOW_S3_ENDPOINT_URL')+":9000"
+            aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
+            aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
 
-        self.exp_args = yaml.load(open(exp_config), yaml.FullLoader)
+            assert(endpoint_url != None)
+            assert(aws_access_key_id != None)
+            assert(aws_secret_access_key != None)
+
+            s3 = boto3.client('s3', 
+                endpoint_url=endpoint_url, #'http://scarlettgpu1.d2.comp.nus.edu.sg:9000', 
+                aws_access_key_id=aws_access_key_id, #'miniomlflow',
+                aws_secret_access_key=aws_secret_access_key, #'R9RqzmC1',
+                config=boto3.session.Config(signature_version='s3v4'),
+                region_name='us-east-1')
+
+            logging.info(f"Load exp file from server with key {exp_config}")
+            obj = s3.get_object(Bucket="mlflow-jobs", Key=exp_config)
+            self.exp_args = yaml.load(obj['Body'].read().decode('utf-8'), yaml.FullLoader)
+        
         self.hash = hash_args(self.exp_args)
         # Simple checks
 
